@@ -1,0 +1,153 @@
+COMBITS Mobile Application Development Competition
+
+Competition Duration: 6 Hours
+
+Theme: "StudyCircle - Study Group Finder Mobile App"
+
+Project Description
+
+You are required to build a mobile-based platform that helps students create, discover, and join study groups for their courses. The app should enable students to connect with peers taking similar courses, schedule study sessions, and collaborate effectively for academic success.
+
+Students should be able to browse study groups, join those that fit their schedule and courses, and participate in organized study sessions. Group creators should be able to manage groups, approve members, and coordinate study events efficiently.
+
+Core Features Required
+
+User Authentication & Profile:
+
+Students must be able to register and log in. Profiles must include name, email, department. semester/year, and profile image. Users should be able to edit their profile details after registration.
+
+Study Group Management:
+
+Students should be able to create and manage study groups for specific courses. Each group must include: group name, course name, course code, description, study topics, maximum members (3-10), meeting schedule, and location. Groups can be Public (open join) or Private (requires approval). Group creators can edit or delete their groups and view member lists.
+
+Group Discovery & Joining:
+
+Users must be able to browse all groups with search and filters (by course, department, time, etc.). Each group listing should display name, course, creator, member count, and schedule. Public groups are joinable instantly; private ones require approval. The app should prevent duplicate membership and enforce member limits.
+
+Study Session Scheduling:
+
+Group members can schedule study sessions with: title, topic, date, time, duration, and agenda. Members can RSVP (Attending/Maybe/Cannot Attend). Sessions can be canc by the session creator or group admin.
+
+Dashboard:
+Each user should have a dashboard showing: active study groupe, spcoming study sessions for the week, and quick statistics such as total sessions attended or groups joined
+
+Bonus Features (Optional-Extra Credit)
+
+Resource Sharing: Upload and share study materials (PDFs, images, linier).
+
+Group Chat: Enable in-group discussions or Q&A
+
+Smart Recommendations: Suggest groups based on interests, semester, or previous
+
+searches. Notifications: Reminders for upcoming sessions or membership approvals
+
+Gamification: Achievements, badges, and streaks for active users.
+
+Calendar View: Visual calendar of upcoming study sessions.
+
+Analytics: Insights for group creators (attendance trends, most active members).
+
+Technical Requirements
+
+You may use any mobile development technology stack, such as Flutter, React Native, Kotlin, or Swift. Backend options may include Firebase, Node.js (Express), Django, or similar.
+
+Database options include SQLite, Firebase Firestore, or any equivalent.
+
+Submission Requirements
+
+Teams must submit the following at the end of the competition:
+
+1. Video Demo (2-5 minutes) demonstrating all major features.
+
+2. GitHub Repository Link with full source code and documentation.
+
+3. Build APK File for testing (Android).
+
+Incomplete submissions (missing any of the three) will not be evaluated.
+
+Evaluation Criteria (100 Points Total)
+
+Criteria
+
+Points
+
+35
+
+Description
+
+Core Functionality
+
+All required features working correctly
+
+Code Quality
+
+18
+
+Clean, modular, well-documented code
+
+Database Design/Data Handling
+
+12
+
+Proper schema and relationships
+
+UI/UX Design
+
+12
+
+Intuitive, professional, and responsive interface
+
+Security/Validation
+
+10
+
+Safe login, proper data handling
+
+Business Logic
+B
+
+Correct rules (capacity limits, join approvals, RSVP
+
+Bonus Features
+
+10
+
+Documentation
+
+3
+
+Git Usage
+
+2
+
+logic)
+
+Extra functionality beyond core requirements
+
+Clear README and setup instructions
+
+Consistent commits and version tracking
+
+Sample Test Scenarios
+
+Judges will test user registration, group creation and joining, searching, scheduling study sessions, dashboard display, and overall app responsiveness.
+
+Important Notes
+
+Use of Al tools is permitted. Pre-built templates are allowed but must be customized meaningfully. Teams must not collaborate with others. Focus on completing core functionality before attempting bonus features.
+
+Time Management Suggestion
+
+Project setup & authentication: 1.5 hrs
+
+Group management features: 2 hrs
+
+Session scheduling & dashboard: 1.5 hrs
+
+Testing, bug fixes, video, and packaging: 1 hr
+
+Judging Focus
+
+Judges are looking for a functional, stable, and user-friendly mobile app that demonstrates technical and creative ability. Focus on working prototypes over perfection.
+
+Good luck to all participants! Build something that connects learners and makes studying smarter!
