@@ -16,6 +16,35 @@ class AchievementsScreen extends StatefulWidget {
 
 class _AchievementsScreenState extends State<AchievementsScreen> {
   final FirestoreService _firestoreService = FirestoreService();
+  bool _isSyncing = false;
+
+  Future<void> _syncStats(String userId) async {
+    setState(() => _isSyncing = true);
+    try {
+      await _firestoreService.syncUserStatsFromDatabase(userId);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Stats synced successfully!'),
+            backgroundColor: AppColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to sync stats: $e'),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isSyncing = false);
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,6 +62,22 @@ class _AchievementsScreenState extends State<AchievementsScreen> {
       appBar: AppBar(
         title: const Text('Achievements'),
         elevation: 0,
+        actions: [
+          IconButton(
+            icon: _isSyncing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  )
+                : const Icon(Icons.refresh),
+            tooltip: 'Sync Stats',
+            onPressed: _isSyncing ? null : () => _syncStats(userId),
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(

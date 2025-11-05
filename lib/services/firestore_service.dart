@@ -865,6 +865,75 @@ class FirestoreService {
     }
   }
 
+  // Sync user stats from actual database counts (useful for existing users)
+  Future<void> syncUserStatsFromDatabase(String userId) async {
+    try {
+      AppLogger.info('Syncing user stats from database: $userId');
+      
+      // Get user data
+      final user = await getUserById(userId);
+      if (user == null) return;
+
+      // Count groups joined
+      final totalGroupsJoined = user.joinedGroupIds.length;
+      
+      // Count groups created
+      final totalGroupsCreated = user.createdGroupIds.length;
+
+      // Count sessions attended (RSVPs with attending status)
+      int totalSessionsAttended = 0;
+      final sessionsSnapshot = await _sessionsCollection
+          .where('dateTime', isLessThan: Timestamp.now()) // Only past sessions
+          .get();
+      
+      for (final sessionDoc in sessionsSnapshot.docs) {
+        final session = StudySessionModel.fromFirestore(sessionDoc);
+        if (session.rsvps.containsKey(userId) && 
+            session.rsvps[userId]?.status == RsvpStatus.attending) {
+          totalSessionsAttended++;
+        }
+      }
+
+      // Count resources uploaded
+      final resourcesSnapshot = await _resourcesCollection
+          .where('uploadedBy', isEqualTo: userId)
+          .get();
+      final totalResourcesUploaded = resourcesSnapshot.docs.length;
+
+      // Calculate total points
+      final totalPoints = (totalGroupsJoined * 10) + 
+                         (totalGroupsCreated * 25) + 
+                         (totalSessionsAttended * 15) + 
+                         (totalResourcesUploaded * 5);
+
+      // Update stats
+      await updateUserStats(userId, {
+        'totalGroupsJoined': totalGroupsJoined,
+        'totalGroupsCreated': totalGroupsCreated,
+        'totalSessionsAttended': totalSessionsAttended,
+        'totalResourcesUploaded': totalResourcesUploaded,
+        'totalPoints': totalPoints,
+      });
+
+      // Initialize achievements if they don't exist
+      final achievementsSnapshot = await _achievementsCollection
+          .where('userId', isEqualTo: userId)
+          .limit(1)
+          .get();
+      
+      if (achievementsSnapshot.docs.isEmpty) {
+        await initializeUserAchievements(userId);
+      }
+
+      // Update achievement progress
+      await checkAndUpdateAchievements(userId);
+
+      AppLogger.info('User stats synced successfully');
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to sync user stats', e, stackTrace);
+    }
+  }
+
   // ==================== ANALYTICS OPERATIONS ====================
 
   // Get or create group analytics

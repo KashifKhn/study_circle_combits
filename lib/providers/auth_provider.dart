@@ -53,6 +53,9 @@ class AuthProvider extends ChangeNotifier {
         _userModel = userData;
         _status = AuthStatus.authenticated;
         AppLogger.info('User data loaded: ${userData.name}');
+        
+        // Auto-sync stats for existing users if needed (runs in background)
+        _ensureUserStatsExist(uid);
       } else {
         // User exists in Auth but not in Firestore (incomplete registration)
         _status = AuthStatus.unauthenticated;
@@ -66,6 +69,25 @@ class AuthProvider extends ChangeNotifier {
       _status = AuthStatus.unauthenticated;
       _errorMessage = 'Failed to load user data';
       notifyListeners();
+    }
+  }
+
+  // Ensure user stats exist (runs in background, doesn't block login)
+  Future<void> _ensureUserStatsExist(String uid) async {
+    try {
+      final stats = await _firestoreService.getUserStats(uid);
+      if (stats == null || (stats.totalGroupsJoined == 0 && 
+          stats.totalGroupsCreated == 0 && 
+          stats.totalSessionsAttended == 0 &&
+          _userModel != null &&
+          (_userModel!.joinedGroupIds.isNotEmpty || _userModel!.createdGroupIds.isNotEmpty))) {
+        // Stats don't exist or are empty but user has activity - sync from database
+        AppLogger.info('Auto-syncing user stats for: $uid');
+        await _firestoreService.syncUserStatsFromDatabase(uid);
+      }
+    } catch (e, stackTrace) {
+      // Don't block login if stats sync fails
+      AppLogger.error('Failed to ensure user stats exist', e, stackTrace);
     }
   }
 
