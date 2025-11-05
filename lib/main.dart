@@ -125,8 +125,7 @@ class MyApp extends StatelessWidget {
               },
               '/question-details': (context) {
                 final question =
-                    ModalRoute.of(context)!.settings.arguments
-                        as QuestionModel;
+                    ModalRoute.of(context)!.settings.arguments as QuestionModel;
                 return QuestionDetailsScreen(question: question);
               },
             },
@@ -137,11 +136,37 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthWrapper extends StatelessWidget {
+class AuthWrapper extends StatefulWidget {
   const AuthWrapper({super.key});
 
   @override
+  State<AuthWrapper> createState() => _AuthWrapperState();
+}
+
+class _AuthWrapperState extends State<AuthWrapper> {
+  bool _showSplash = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSplash();
+  }
+
+  Future<void> _initSplash() async {
+    await Future.delayed(const Duration(seconds: 1));
+    if (mounted) {
+      setState(() {
+        _showSplash = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_showSplash) {
+      return const SplashScreen();
+    }
+
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
         if (authProvider.status == AuthStatus.uninitialized) {
