@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:study_circle/models/study_group_model.dart';
+import 'package:study_circle/models/join_request_model.dart';
 import 'package:study_circle/providers/auth_provider.dart' as app_auth;
 import 'package:study_circle/services/firestore_service.dart';
+import 'package:study_circle/screens/groups/join_requests_screen.dart';
 import 'package:study_circle/theme/app_colors.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
@@ -100,6 +102,56 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         ),
       ),
       actions: [
+        if (isCreator && !group.isPublic)
+          StreamBuilder<List<JoinRequestModel>>(
+            stream: _firestoreService.getGroupJoinRequests(group.id),
+            builder: (context, snapshot) {
+              final pendingCount = snapshot.data?.length ?? 0;
+              return Stack(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.person_add),
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => JoinRequestsScreen(
+                            groupId: group.id,
+                            groupName: group.name,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                  if (pendingCount > 0)
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.error,
+                          shape: BoxShape.circle,
+                        ),
+                        constraints: const BoxConstraints(
+                          minWidth: 16,
+                          minHeight: 16,
+                        ),
+                        child: Text(
+                          '$pendingCount',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                ],
+              );
+            },
+          ),
         if (isCreator)
           IconButton(
             icon: const Icon(Icons.edit),
@@ -544,21 +596,57 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement join group logic
-      // For now, just show success message
-      await Future.delayed(const Duration(seconds: 1));
-      
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Successfully joined the group!'),
-            backgroundColor: Colors.green,
-          ),
+      if (group.isPublic) {
+        // Public group: instant join
+        await _firestoreService.joinGroup(group.id, currentUser.uid);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Successfully joined the group!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        // Private group: send join request
+        // Check if user already has a pending request
+        final hasPending = await _firestoreService.hasPendingJoinRequest(
+          group.id,
+          currentUser.uid,
         );
+        
+        if (hasPending) {
+          _showErrorSnackBar('You already have a pending request for this group');
+          return;
+        }
+        
+        // Create join request
+        final request = JoinRequestModel(
+          id: '',
+          groupId: group.id,
+          userId: currentUser.uid,
+          userName: currentUser.name,
+          userEmail: currentUser.email,
+          userProfileImageUrl: currentUser.profileImageUrl,
+          status: 'pending',
+          createdAt: DateTime.now(),
+        );
+        
+        await _firestoreService.createJoinRequest(request);
+        
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Join request sent! Waiting for approval.'),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Failed to join group: $e');
+        _showErrorSnackBar('$e');
       }
     } finally {
       if (mounted) {
@@ -568,6 +656,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Future<void> _leaveGroup(StudyGroupModel group) async {
+    final authProvider = context.read<app_auth.AuthProvider>();
+    final currentUser = authProvider.userModel;
+    
+    if (currentUser == null) return;
+    
     final confirmed = await _showConfirmDialog(
       'Leave Group',
       'Are you sure you want to leave this group?',
@@ -578,8 +671,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     setState(() => _isLoading = true);
 
     try {
-      // TODO: Implement leave group logic
-      await Future.delayed(const Duration(seconds: 1));
+      await _firestoreService.leaveGroup(group.id, currentUser.uid);
       
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -591,7 +683,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
       }
     } catch (e) {
       if (mounted) {
-        _showErrorSnackBar('Failed to leave group: $e');
+        _showErrorSnackBar('$e');
       }
     } finally {
       if (mounted) {

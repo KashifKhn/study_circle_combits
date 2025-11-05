@@ -83,8 +83,17 @@ class FirestoreService {
     try {
       AppLogger.info('Creating study group: ${group.name}');
       final docRef = await _groupsCollection.add(group.toFirestore());
-      AppLogger.info('Study group created: ${docRef.id}');
-      return docRef.id;
+      final groupId = docRef.id;
+      AppLogger.info('Study group created: $groupId');
+      
+      // Update user's joinedGroupIds and createdGroupIds
+      await _usersCollection.doc(group.creatorId).update({
+        'joinedGroupIds': FieldValue.arrayUnion([groupId]),
+        'createdGroupIds': FieldValue.arrayUnion([groupId]),
+      });
+      
+      AppLogger.info('User group IDs updated successfully');
+      return groupId;
     } catch (e, stackTrace) {
       AppLogger.error('Failed to create study group', e, stackTrace);
       throw 'Failed to create group. Please try again.';

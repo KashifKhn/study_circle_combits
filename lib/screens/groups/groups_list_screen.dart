@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:study_circle/models/study_group_model.dart';
+import 'package:study_circle/providers/auth_provider.dart' as app_auth;
 import 'package:study_circle/services/firestore_service.dart';
 import 'package:study_circle/theme/app_colors.dart';
 import 'package:study_circle/utils/constants.dart';
@@ -193,12 +195,47 @@ class _GroupsListScreenState extends State<GroupsListScreen>
   }
 
   Widget _buildMyGroupsTab() {
-    // TODO: Get current user ID from AuthProvider
-    // For now, show empty state
-    return _buildEmptyState(
-      icon: Icons.groups,
-      title: 'My Groups',
-      message: 'Groups you join or create will appear here',
+    final authProvider = context.watch<app_auth.AuthProvider>();
+    final currentUser = authProvider.userModel;
+
+    if (currentUser == null) {
+      return _buildEmptyState(
+        icon: Icons.error_outline,
+        title: 'Not Logged In',
+        message: 'Please log in to view your groups',
+      );
+    }
+
+    return StreamBuilder<List<StudyGroupModel>>(
+      stream: _firestoreService.getUserGroups(currentUser.uid),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return _buildErrorState('Error loading your groups: ${snapshot.error}');
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final groups = snapshot.data ?? [];
+
+        if (groups.isEmpty) {
+          return _buildEmptyState(
+            icon: Icons.groups,
+            title: 'No Groups Yet',
+            message: 'Groups you join or create will appear here',
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: groups.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            return _GroupCard(group: groups[index]);
+          },
+        );
+      },
     );
   }
 
