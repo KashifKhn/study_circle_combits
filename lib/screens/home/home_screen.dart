@@ -64,38 +64,71 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context, UserModel user) {
+    final isDark = context.watch<ThemeProvider>().isDarkMode;
+    
     return AppBar(
-      title: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      elevation: 0,
+      toolbarHeight: 70,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark ? AppColors.gradientDark : AppColors.gradientLight,
+          ),
+        ),
+      ),
+      title: Row(
         children: [
-          const Text(
-            'StudyCircle',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'Poppins',
+          CircleAvatar(
+            radius: 22,
+            backgroundColor: Colors.white.withValues(alpha: 0.3),
+            child: Text(
+              user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+              style: const TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
             ),
           ),
-          Text(
-            'Hello, ${user.name.split(' ').first}!',
-            style: TextStyle(
-              fontSize: 12,
-              color: Theme.of(context).textTheme.bodySmall?.color,
-              fontWeight: FontWeight.normal,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Hello, ${user.name.split(' ').first}! 👋',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Ready to learn today?',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontWeight: FontWeight.normal,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
       actions: [
         IconButton(
-          icon: const Icon(Icons.emoji_events),
+          icon: const Icon(Icons.emoji_events_outlined, color: Colors.white),
           tooltip: 'Achievements',
           onPressed: () {
             Navigator.pushNamed(context, '/achievements');
           },
         ),
         IconButton(
-          icon: const Icon(Icons.calendar_month),
+          icon: const Icon(Icons.calendar_month_outlined, color: Colors.white),
           tooltip: 'Calendar',
           onPressed: () {
             Navigator.pushNamed(context, '/calendar');
@@ -103,15 +136,14 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         IconButton(
           icon: Icon(
-            context.watch<ThemeProvider>().isDarkMode
-                ? Icons.light_mode
-                : Icons.dark_mode,
+            isDark ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+            color: Colors.white,
           ),
           onPressed: () {
             context.read<ThemeProvider>().toggleTheme();
           },
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 4),
       ],
     );
   }
@@ -157,25 +189,40 @@ class _DashboardTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return RefreshIndicator(
       onRefresh: () async {
         // Refresh user data
         await context.read<app_auth.AuthProvider>().reloadUserData();
       },
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildStatsCards(),
-            const SizedBox(height: 24),
-            _buildQuickActions(context),
-            const SizedBox(height: 24),
-            _buildUpcomingSessions(),
-            const SizedBox(height: 24),
-            _buildRecentGroups(),
-          ],
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: isDark
+                ? [AppColors.backgroundDark, AppColors.surfaceDark]
+                : [AppColors.gray50, AppColors.backgroundLight],
+            stops: const [0.0, 0.3],
+          ),
+        ),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildStatsCards(),
+              const SizedBox(height: 24),
+              _buildQuickActions(context),
+              const SizedBox(height: 24),
+              _buildUpcomingSessions(),
+              const SizedBox(height: 24),
+              _buildRecentGroups(),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
       ),
     );
@@ -184,30 +231,77 @@ class _DashboardTab extends StatelessWidget {
   Widget _buildStatsCards() {
     final firestoreService = FirestoreService();
 
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: _StatCard(
-            icon: Icons.groups,
-            title: 'Groups Joined',
-            value: user.joinedGroupIds.length.toString(),
-            color: AppColors.primary,
+        const Text(
+          'Your Progress',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Poppins',
           ),
         ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: StreamBuilder<List<StudySessionModel>>(
-            stream: firestoreService.getUpcomingSessions(user.joinedGroupIds),
-            builder: (context, snapshot) {
-              final sessionCount = snapshot.data?.length ?? 0;
-              return _StatCard(
-                icon: Icons.event_available,
-                title: 'Upcoming Sessions',
-                value: sessionCount.toString(),
-                color: AppColors.success,
-              );
-            },
-          ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.groups_rounded,
+                title: 'Groups Joined',
+                value: user.joinedGroupIds.length.toString(),
+                color: AppColors.primary,
+                gradient: const [Color(0xFF6366F1), Color(0xFF818CF8)],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StreamBuilder<List<StudySessionModel>>(
+                stream: firestoreService.getUpcomingSessions(user.joinedGroupIds),
+                builder: (context, snapshot) {
+                  final sessionCount = snapshot.data?.length ?? 0;
+                  return _StatCard(
+                    icon: Icons.event_available_rounded,
+                    title: 'Upcoming',
+                    value: sessionCount.toString(),
+                    color: AppColors.success,
+                    gradient: const [Color(0xFF10B981), Color(0xFF34D399)],
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _StatCard(
+                icon: Icons.group_add_rounded,
+                title: 'Groups Created',
+                value: user.createdGroupIds.length.toString(),
+                color: AppColors.accent,
+                gradient: const [Color(0xFFEC4899), Color(0xFFF472B6)],
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: StreamBuilder(
+                stream: firestoreService.getUserStatsStream(user.uid),
+                builder: (context, snapshot) {
+                  final stats = snapshot.data;
+                  final points = stats?.totalPoints ?? 0;
+                  return _StatCard(
+                    icon: Icons.stars_rounded,
+                    title: 'Total Points',
+                    value: points.toString(),
+                    color: AppColors.warning,
+                    gradient: const [Color(0xFFF59E0B), Color(0xFFFBBF24)],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -220,7 +314,7 @@ class _DashboardTab extends StatelessWidget {
         const Text(
           'Quick Actions',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
             fontFamily: 'Poppins',
           ),
@@ -230,20 +324,44 @@ class _DashboardTab extends StatelessWidget {
           children: [
             Expanded(
               child: _ActionButton(
-                icon: Icons.add_circle,
+                icon: Icons.add_circle_outline_rounded,
                 label: 'Create Group',
+                color: AppColors.primary,
                 onTap: () => Navigator.pushNamed(context, '/create-group'),
               ),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: _ActionButton(
-                icon: Icons.search,
+                icon: Icons.search_rounded,
                 label: 'Find Groups',
+                color: AppColors.info,
                 onTap: () {
                   // Switch to groups tab
                   onChangeTab(1);
                 },
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: _ActionButton(
+                icon: Icons.event_note_rounded,
+                label: 'My Sessions',
+                color: AppColors.success,
+                onTap: () => onChangeTab(2),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: _ActionButton(
+                icon: Icons.question_answer_rounded,
+                label: 'Q&A Forum',
+                color: AppColors.accent,
+                onTap: () => Navigator.pushNamed(context, '/qna-list'),
               ),
             ),
           ],
@@ -261,19 +379,37 @@ class _DashboardTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Upcoming Sessions',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.calendar_today_rounded, 
+                    color: AppColors.info, 
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'Upcoming Sessions',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                onChangeTab(2); // Navigate to sessions tab
-              },
-              child: const Text('View All'),
+            TextButton.icon(
+              onPressed: () => onChangeTab(2),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: const Text('View All'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
             ),
           ],
         ),
@@ -283,16 +419,17 @@ class _DashboardTab extends StatelessWidget {
           builder: (context, snapshot) {
             if (snapshot.hasError) {
               return _buildEmptyState(
-                icon: Icons.error_outline,
+                icon: Icons.error_outline_rounded,
                 message: 'Error loading sessions',
+                color: AppColors.error,
               );
             }
 
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return const Center(
+              return Center(
                 child: Padding(
-                  padding: EdgeInsets.all(16),
-                  child: CircularProgressIndicator(),
+                  padding: const EdgeInsets.all(32),
+                  child: CircularProgressIndicator(color: AppColors.primary),
                 ),
               );
             }
@@ -301,8 +438,10 @@ class _DashboardTab extends StatelessWidget {
 
             if (sessions.isEmpty) {
               return _buildEmptyState(
-                icon: Icons.event_busy,
-                message: 'No upcoming sessions',
+                icon: Icons.event_busy_rounded,
+                message: 'No upcoming sessions yet',
+                subtitle: 'Join a group to see sessions',
+                color: AppColors.gray400,
               );
             }
 
@@ -312,7 +451,7 @@ class _DashboardTab extends StatelessWidget {
             return Column(
               children: displaySessions.map((session) {
                 return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                  padding: const EdgeInsets.only(bottom: 12),
                   child: _SessionPreviewCard(session: session),
                 );
               }).toList(),
@@ -330,46 +469,114 @@ class _DashboardTab extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'My Groups',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-              ),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(Icons.groups_rounded, 
+                    color: AppColors.primary, 
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text(
+                  'My Groups',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+              ],
             ),
-            TextButton(
-              onPressed: () {
-                onChangeTab(1); // Navigate to groups tab
-              },
-              child: const Text('View All'),
+            TextButton.icon(
+              onPressed: () => onChangeTab(1),
+              icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+              label: const Text('View All'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+              ),
             ),
           ],
         ),
         const SizedBox(height: 12),
         user.joinedGroupIds.isEmpty
             ? _buildEmptyState(
-                icon: Icons.group_off,
-                message: 'Join your first study group!',
+                icon: Icons.group_add_rounded,
+                message: 'No groups yet',
+                subtitle: 'Join or create your first study group!',
+                color: AppColors.gray400,
               )
             : Container(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.primary.withValues(alpha: 0.1),
+                      AppColors.primary.withValues(alpha: 0.05),
+                    ],
                   ),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    width: 1.5,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
-                    Icon(Icons.groups, color: AppColors.primary, size: 32),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'You are in ${user.joinedGroupIds.length} group${user.joinedGroupIds.length == 1 ? '' : 's'}',
-                        style: const TextStyle(fontWeight: FontWeight.w500),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
                       ),
+                      child: Icon(Icons.groups_rounded, 
+                        color: AppColors.primary, 
+                        size: 32,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            user.joinedGroupIds.length == 1 
+                              ? '1 Study Group' 
+                              : '${user.joinedGroupIds.length} Study Groups',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Keep learning together!',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppColors.gray600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Icon(Icons.chevron_right_rounded, 
+                      color: AppColors.primary, 
+                      size: 28,
                     ),
                   ],
                 ),
@@ -378,22 +585,44 @@ class _DashboardTab extends StatelessWidget {
     );
   }
 
-  Widget _buildEmptyState({required IconData icon, required String message}) {
+  Widget _buildEmptyState({
+    required IconData icon, 
+    required String message, 
+    String? subtitle,
+    Color? color,
+  }) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: AppColors.gray100,
-        borderRadius: BorderRadius.circular(12),
+        color: (color ?? AppColors.gray400).withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (color ?? AppColors.gray400).withValues(alpha: 0.1),
+        ),
       ),
       child: Center(
         child: Column(
           children: [
-            Icon(icon, size: 48, color: AppColors.gray400),
-            const SizedBox(height: 8),
+            Icon(icon, size: 56, color: color ?? AppColors.gray400),
+            const SizedBox(height: 12),
             Text(
               message,
-              style: TextStyle(color: AppColors.gray600, fontSize: 14),
+              style: TextStyle(
+                color: AppColors.gray700,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
             ),
+            if (subtitle != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  color: AppColors.gray500,
+                  fontSize: 13,
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -407,39 +636,72 @@ class _StatCard extends StatelessWidget {
   final String title;
   final String value;
   final Color color;
+  final List<Color> gradient;
 
   const _StatCard({
     required this.icon,
     required this.title,
     required this.value,
     required this.color,
+    required this.gradient,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient.map((c) => c.withValues(alpha: isDark ? 0.2 : 0.15)).toList(),
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3)),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: color, size: 32),
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: isDark ? 0.3 : 0.2),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: color, size: 24),
+          ),
           const SizedBox(height: 12),
           Text(
             value,
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 32,
               fontWeight: FontWeight.bold,
               color: color,
               fontFamily: 'Poppins',
+              height: 1,
             ),
           ),
           const SizedBox(height: 4),
-          Text(title, style: TextStyle(fontSize: 12, color: AppColors.gray600)),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.gray600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ],
       ),
     );
@@ -450,36 +712,72 @@ class _StatCard extends StatelessWidget {
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
+  final Color color;
   final VoidCallback onTap;
 
   const _ActionButton({
     required this.icon,
     required this.label,
+    required this.color,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.gray200),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, color: AppColors.primary, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                color.withValues(alpha: isDark ? 0.15 : 0.1),
+                color.withValues(alpha: isDark ? 0.1 : 0.05),
+              ],
             ),
-          ],
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: color.withValues(alpha: 0.3),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.08),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: isDark ? 0.3 : 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: color, size: 28),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                label,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -497,23 +795,18 @@ class _SessionPreviewCard extends StatelessWidget {
     final dateFormat = DateFormat('MMM dd');
     final timeFormat = DateFormat('h:mm a');
     final firestoreService = FirestoreService();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return StreamBuilder<StudyGroupModel?>(
       stream: firestoreService.getStudyGroupStream(session.groupId),
       builder: (context, groupSnapshot) {
         final group = groupSnapshot.data;
 
-        return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: AppColors.info.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.info.withValues(alpha: 0.2)),
-          ),
+        return Material(
+          color: Colors.transparent,
           child: InkWell(
             onTap: group != null
                 ? () {
-                    // Navigate to session details
                     Navigator.pushNamed(
                       context,
                       '/session-details',
@@ -521,56 +814,118 @@ class _SessionPreviewCard extends StatelessWidget {
                     );
                   }
                 : null,
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColors.info.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(Icons.event, color: AppColors.info, size: 24),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: isDark 
+                  ? AppColors.surfaceDark 
+                  : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: AppColors.info.withValues(alpha: 0.2),
+                  width: 1.5,
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        session.title,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.info.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.info.withValues(alpha: 0.2),
+                          AppColors.info.withValues(alpha: 0.1),
+                        ],
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '${dateFormat.format(session.dateTime)} at ${timeFormat.format(session.dateTime)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: AppColors.gray600,
-                        ),
-                      ),
-                      if (group != null) ...[
-                        const SizedBox(height: 2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(Icons.event_rounded, 
+                      color: AppColors.info, 
+                      size: 28,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                         Text(
-                          group.name,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w500,
+                          session.title,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 15,
+                            fontFamily: 'Poppins',
                           ),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            Icon(Icons.access_time_rounded, 
+                              size: 14, 
+                              color: AppColors.gray500,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${dateFormat.format(session.dateTime)} • ${timeFormat.format(session.dateTime)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.gray600,
+                              ),
+                            ),
+                          ],
+                        ),
+                        if (group != null) ...[
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Icon(Icons.groups_rounded, 
+                                size: 14, 
+                                color: AppColors.primary,
+                              ),
+                              const SizedBox(width: 4),
+                              Expanded(
+                                child: Text(
+                                  group.name,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppColors.primary,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                Icon(Icons.chevron_right, color: AppColors.gray400, size: 20),
-              ],
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppColors.info.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(Icons.arrow_forward_ios_rounded, 
+                      color: AppColors.info, 
+                      size: 16,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );

@@ -146,15 +146,32 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   PreferredSizeWidget _buildAppBar(StudyGroupModel group, bool isCreator) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return AppBar(
+      elevation: 0,
+      flexibleSpace: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: isDark ? AppColors.gradientDark : AppColors.gradientLight,
+          ),
+        ),
+      ),
+      iconTheme: const IconThemeData(color: Colors.white),
       title: const Text(
         'Group Details',
-        style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Poppins',
+          color: Colors.white,
+        ),
       ),
       actions: [
         if (isCreator)
           IconButton(
-            icon: const Icon(Icons.analytics),
+            icon: const Icon(Icons.analytics, color: Colors.white),
             tooltip: 'View Analytics',
             onPressed: () {
               Navigator.pushNamed(
@@ -172,7 +189,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               return Stack(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.person_add),
+                    icon: const Icon(Icons.person_add, color: Colors.white),
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -216,12 +233,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           ),
         if (isCreator)
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.edit, color: Colors.white),
             onPressed: () {
               Navigator.pushNamed(context, '/edit-group', arguments: group);
             },
           ),
         PopupMenuButton(
+          icon: const Icon(Icons.more_vert, color: Colors.white),
           itemBuilder: (context) => [
             const PopupMenuItem(
               value: 'share',
@@ -258,13 +276,15 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Widget _buildHeader(StudyGroupModel group, String? currentUserId) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.primary, AppColors.primary.withValues(alpha: 0.8)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
+          colors: isDark ? AppColors.gradientDark : AppColors.gradientLight,
         ),
       ),
       child: Column(
@@ -276,9 +296,16 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                child: Icon(Icons.groups, size: 32, color: AppColors.primary),
+                child: Icon(Icons.groups_rounded, size: 36, color: AppColors.primary),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -288,18 +315,33 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     Text(
                       group.name,
                       style: const TextStyle(
-                        fontSize: 20,
+                        fontSize: 22,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
                         fontFamily: 'Poppins',
                       ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      group.courseCode,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Colors.white70,
+                    const SizedBox(height: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.25),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Text(
+                        group.courseCode,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: 0.5,
+                        ),
                       ),
                     ),
                   ],
@@ -307,17 +349,17 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Row(
             children: [
               _buildStatBadge(
-                Icons.people,
+                Icons.people_rounded,
                 '${group.memberIds.length}/${group.maxMembers}',
                 'Members',
               ),
               const SizedBox(width: 12),
               _buildStatBadge(
-                Icons.visibility,
+                group.isPublic ? Icons.public_rounded : Icons.lock_rounded,
                 group.isPublic ? 'Public' : 'Private',
                 'Visibility',
               ),
@@ -327,7 +369,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                 builder: (context, snapshot) {
                   final sessionCount = snapshot.data?.length ?? 0;
                   return _buildStatBadge(
-                    Icons.event,
+                    Icons.event_rounded,
                     sessionCount.toString(),
                     'Sessions',
                   );
@@ -343,32 +385,43 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   Widget _buildStatBadge(IconData icon, String value, String label) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.2),
-          borderRadius: BorderRadius.circular(8),
+          color: Colors.white.withValues(alpha: 0.25),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.3),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(icon, size: 16, color: Colors.white),
-                const SizedBox(width: 4),
-                Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
+            Icon(icon, size: 20, color: Colors.white),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontFamily: 'Poppins',
+              ),
             ),
             const SizedBox(height: 2),
             Text(
               label,
-              style: const TextStyle(fontSize: 11, color: Colors.white70),
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -377,15 +430,52 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Widget _buildTabBar() {
-    return TabBar(
-      controller: _tabController,
-      tabs: const [
-        Tab(text: 'About'),
-        Tab(text: 'Members'),
-        Tab(text: 'Sessions'),
-        Tab(text: 'Resources'),
-        Tab(text: 'Q&A'),
-      ],
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: TabBar(
+        controller: _tabController,
+        labelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.bold,
+        ),
+        unselectedLabelStyle: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        indicator: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.primary.withValues(alpha: 0.1),
+              AppColors.primaryLight.withValues(alpha: 0.1),
+            ],
+          ),
+          border: Border(
+            bottom: BorderSide(
+              color: AppColors.primary,
+              width: 3,
+            ),
+          ),
+        ),
+        tabs: const [
+          Tab(text: 'About'),
+          Tab(text: 'Members'),
+          Tab(text: 'Sessions'),
+          Tab(text: 'Resources'),
+          Tab(text: 'Q&A'),
+        ],
+      ),
     );
   }
 
@@ -467,40 +557,113 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Widget _buildMembersTab(StudyGroupModel group) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return ListView.separated(
       padding: const EdgeInsets.all(16),
       itemCount: group.memberIds.length,
-      separatorBuilder: (context, index) => const Divider(),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final memberId = group.memberIds[index];
         final isCreator = memberId == group.creatorId;
 
-        return ListTile(
-          leading: CircleAvatar(
-            backgroundColor: AppColors.primary.withValues(alpha: 0.1),
-            child: Text(
-              '${index + 1}',
-              style: TextStyle(
-                color: AppColors.primary,
-                fontWeight: FontWeight.bold,
+        return Container(
+          decoration: BoxDecoration(
+            color: isDark ? AppColors.surfaceDark : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isCreator
+                  ? AppColors.primary.withValues(alpha: 0.3)
+                  : (isDark ? AppColors.gray700 : AppColors.gray200).withValues(alpha: 0.5),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.06),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ListTile(
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            leading: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: isCreator
+                      ? [AppColors.primary, AppColors.primaryLight]
+                      : [
+                          AppColors.accent.withValues(alpha: 0.8),
+                          AppColors.accent.withValues(alpha: 0.6),
+                        ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: (isCreator ? AppColors.primary : AppColors.accent)
+                        .withValues(alpha: 0.3),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                '${index + 1}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                  fontFamily: 'Poppins',
+                ),
               ),
             ),
+            title: Text(
+              isCreator ? group.creatorName : 'Member ${index + 1}',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: isDark ? Colors.white : AppColors.gray900,
+              ),
+            ),
+            trailing: isCreator
+                ? Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [AppColors.primary, AppColors.primaryLight],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
+                        Icon(Icons.star_rounded, size: 14, color: Colors.white),
+                        SizedBox(width: 4),
+                        Text(
+                          'Creator',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : null,
           ),
-          title: Text(
-            isCreator ? group.creatorName : 'Member ${index + 1}',
-            style: const TextStyle(fontWeight: FontWeight.w500),
-          ),
-          trailing: isCreator
-              ? Chip(
-                  label: const Text('Creator'),
-                  backgroundColor: AppColors.primary,
-                  labelStyle: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                  ),
-                  padding: EdgeInsets.zero,
-                )
-              : null,
         );
       },
     );
@@ -622,6 +785,8 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     if (currentUserId == null) return null;
     if (isCreator) return null;
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     if (!isMember && !group.isPublic) {
       return StreamBuilder<bool>(
         stream: _firestoreService.hasPendingJoinRequestStream(
@@ -634,66 +799,84 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
           return Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Theme.of(context).cardColor,
+              color: isDark ? AppColors.surfaceDark : Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, -5),
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, -4),
                 ),
               ],
             ),
             child: SafeArea(
               child: SizedBox(
                 width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isLoading || hasPendingRequest
-                      ? null
-                      : () => _joinGroup(group),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: hasPendingRequest
-                        ? AppColors.warning
-                        : AppColors.primary,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: AppColors.warning.withValues(
-                      alpha: 0.6,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: hasPendingRequest
+                          ? [AppColors.warning, AppColors.warning.withValues(alpha: 0.8)]
+                          : [AppColors.primary, AppColors.primaryLight],
                     ),
-                    disabledForegroundColor: Colors.white.withValues(
-                      alpha: 0.8,
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (hasPendingRequest ? AppColors.warning : AppColors.primary)
+                            .withValues(alpha: 0.4),
+                        blurRadius: 12,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            if (hasPendingRequest)
-                              const Icon(Icons.schedule, size: 20),
-                            if (hasPendingRequest) const SizedBox(width: 8),
-                            Text(
-                              hasPendingRequest
-                                  ? 'Request Pending'
-                                  : 'Request to Join',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+                  child: ElevatedButton(
+                    onPressed: _isLoading || hasPendingRequest
+                        ? null
+                        : () => _joinGroup(group),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      foregroundColor: Colors.white,
+                      shadowColor: Colors.transparent,
+                      disabledBackgroundColor: Colors.transparent,
+                      disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                Colors.white,
                               ),
                             ),
-                          ],
-                        ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                hasPendingRequest ? Icons.schedule_rounded : Icons.send_rounded,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                hasPendingRequest
+                                    ? 'Request Pending'
+                                    : 'Request to Join',
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Poppins',
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
                 ),
               ),
             ),
@@ -705,52 +888,85 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
+        color: isDark ? AppColors.surfaceDark : Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, -5),
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
         child: SizedBox(
           width: double.infinity,
-          child: ElevatedButton(
-            onPressed: _isLoading
-                ? null
-                : () {
-                    if (isMember) {
-                      _leaveGroup(group);
-                    } else {
-                      _joinGroup(group);
-                    }
-                  },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isMember ? AppColors.error : AppColors.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isMember
+                    ? [AppColors.error, AppColors.error.withValues(alpha: 0.8)]
+                    : [AppColors.primary, AppColors.primaryLight],
               ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: (isMember ? AppColors.error : AppColors.primary)
+                      .withValues(alpha: 0.4),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: _isLoading
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            child: ElevatedButton(
+              onPressed: _isLoading
+                  ? null
+                  : () {
+                      if (isMember) {
+                        _leaveGroup(group);
+                      } else {
+                        _joinGroup(group);
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.white,
+                shadowColor: Colors.transparent,
+                disabledBackgroundColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          isMember ? Icons.exit_to_app_rounded : Icons.login_rounded,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          isMember ? 'Leave Group' : 'Join Group',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Poppins',
+                          ),
+                        ),
+                      ],
                     ),
-                  )
-                : Text(
-                    isMember ? 'Leave Group' : 'Join Group',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+            ),
           ),
         ),
       ),
@@ -1031,145 +1247,240 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     final currentUser = authProvider.userModel;
     final isUploader =
         currentUser != null && resource.uploadedBy == currentUser.uid;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     IconData fileIcon;
     Color fileColor;
 
     switch (resource.fileType) {
       case 'pdf':
-        fileIcon = Icons.picture_as_pdf;
+        fileIcon = Icons.picture_as_pdf_rounded;
         fileColor = Colors.red;
         break;
       case 'image':
-        fileIcon = Icons.image;
+        fileIcon = Icons.image_rounded;
         fileColor = Colors.blue;
         break;
       case 'video':
-        fileIcon = Icons.video_file;
+        fileIcon = Icons.video_file_rounded;
         fileColor = Colors.purple;
         break;
       default:
-        fileIcon = Icons.insert_drive_file;
+        fileIcon = Icons.insert_drive_file_rounded;
         fileColor = AppColors.gray600;
     }
 
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: InkWell(
-        onTap: () => _downloadResource(resource),
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: fileColor.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: (isDark ? AppColors.gray700 : AppColors.gray200).withValues(alpha: 0.5),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _downloadResource(resource),
+          borderRadius: BorderRadius.circular(16),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            fileColor.withValues(alpha: 0.8),
+                            fileColor.withValues(alpha: 0.6),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                        boxShadow: [
+                          BoxShadow(
+                            color: fileColor.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(fileIcon, color: Colors.white, size: 28),
                     ),
-                    child: Icon(fileIcon, color: fileColor, size: 24),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            resource.title,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                              color: isDark ? Colors.white : AppColors.gray900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: fileColor.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: fileColor.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              resource.fileName,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: fileColor,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isUploader)
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: IconButton(
+                          icon: Icon(Icons.delete_rounded, color: AppColors.error, size: 20),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          onPressed: () => _confirmDeleteResource(resource),
+                        ),
+                      ),
+                  ],
+                ),
+                if (resource.description.isNotEmpty) ...[
+                  const SizedBox(height: 14),
+                  Text(
+                    resource.description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? AppColors.gray400 : AppColors.gray700,
+                      height: 1.4,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          resource.title,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          resource.fileName,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: AppColors.gray600,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
+                ],
+                const SizedBox(height: 14),
+                Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        (isDark ? AppColors.gray700 : AppColors.gray300).withValues(alpha: 0.5),
+                        Colors.transparent,
                       ],
                     ),
                   ),
-                  if (isUploader)
-                    IconButton(
-                      icon: Icon(Icons.delete, color: AppColors.error),
-                      onPressed: () => _confirmDeleteResource(resource),
-                    ),
-                ],
-              ),
-              if (resource.description.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  resource.description,
-                  style: TextStyle(fontSize: 14, color: AppColors.gray700),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ],
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.person, size: 14, color: AppColors.gray500),
-                  const SizedBox(width: 4),
-                  Text(
-                    resource.uploaderName,
-                    style: TextStyle(fontSize: 12, color: AppColors.gray600),
-                  ),
-                  const SizedBox(width: 12),
-                  Icon(Icons.access_time, size: 14, color: AppColors.gray500),
-                  const SizedBox(width: 4),
-                  Text(
-                    _formatDate(resource.uploadedAt),
-                    style: TextStyle(fontSize: 12, color: AppColors.gray600),
-                  ),
-                  const Spacer(),
-                  Text(
-                    resource.formattedFileSize,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.primary,
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    Icon(Icons.person_rounded, size: 15, color: AppColors.gray500),
+                    const SizedBox(width: 5),
+                    Text(
+                      resource.uploaderName,
+                      style: TextStyle(fontSize: 12, color: AppColors.gray600, fontWeight: FontWeight.w500),
                     ),
-                  ),
-                ],
-              ),
-              if (resource.tags.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  children: resource.tags.map((tag) {
-                    return Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                    const SizedBox(width: 14),
+                    Icon(Icons.access_time_rounded, size: 15, color: AppColors.gray500),
+                    const SizedBox(width: 5),
+                    Text(
+                      _formatDate(resource.uploadedAt),
+                      style: TextStyle(fontSize: 12, color: AppColors.gray600, fontWeight: FontWeight.w500),
+                    ),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        tag,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w500,
+                        gradient: LinearGradient(
+                          colors: [
+                            fileColor.withValues(alpha: 0.15),
+                            fileColor.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: fileColor.withValues(alpha: 0.3),
                         ),
                       ),
-                    );
-                  }).toList(),
+                      child: Text(
+                        resource.formattedFileSize,
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: fileColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                if (resource.tags.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: resource.tags.map((tag) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              AppColors.primary.withValues(alpha: 0.12),
+                              AppColors.primaryLight.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Text(
+                          tag,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),

@@ -37,17 +37,51 @@ class _GroupsListScreenState extends State<GroupsListScreen>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Study Groups',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Poppins',
+        elevation: 0,
+        toolbarHeight: 70,
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isDark ? AppColors.gradientDark : AppColors.gradientLight,
+            ),
           ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.groups_rounded, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              'Study Groups',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                fontFamily: 'Poppins',
+                color: Colors.white,
+              ),
+            ),
+          ],
         ),
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 15,
+          ),
           tabs: const [
             Tab(text: 'All Groups'),
             Tab(text: 'My Groups'),
@@ -72,45 +106,60 @@ class _GroupsListScreenState extends State<GroupsListScreen>
   }
 
   Widget _buildSearchAndFilter() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Theme.of(context).cardColor,
-        border: Border(
-          bottom: BorderSide(color: AppColors.gray200),
-        ),
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
           // Search bar
-          TextField(
-            controller: _searchController,
-            decoration: InputDecoration(
-              hintText: 'Search by name, course, location...',
-              hintStyle: TextStyle(fontSize: 14, color: AppColors.gray500),
-              prefixIcon: const Icon(Icons.search),
-              suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear),
-                      onPressed: () {
-                        setState(() {
-                          _searchController.clear();
-                          _searchQuery = '';
-                        });
-                      },
-                    )
-                  : null,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+          Container(
+            decoration: BoxDecoration(
+              color: isDark ? AppColors.backgroundDark : AppColors.gray50,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: AppColors.gray200.withValues(alpha: 0.3),
               ),
-              filled: true,
-              fillColor: AppColors.gray50,
             ),
-            onChanged: (value) {
-              setState(() {
-                _searchQuery = value;
-              });
-            },
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Search groups, courses, locations...',
+                hintStyle: TextStyle(fontSize: 14, color: AppColors.gray500),
+                prefixIcon: Icon(Icons.search_rounded, color: AppColors.primary),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: Icon(Icons.clear_rounded, color: AppColors.gray500),
+                        onPressed: () {
+                          setState(() {
+                            _searchController.clear();
+                            _searchQuery = '';
+                          });
+                        },
+                      )
+                    : null,
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
+              ),
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+            ),
           ),
           const SizedBox(height: 12),
           // Filter chips
@@ -118,10 +167,10 @@ class _GroupsListScreenState extends State<GroupsListScreen>
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                FilterChip(
-                  label: const Text('All Departments'),
-                  selected: _selectedDepartment == null,
-                  onSelected: (selected) {
+                _buildFilterChip(
+                  label: 'All Departments',
+                  isSelected: _selectedDepartment == null,
+                  onTap: () {
                     setState(() {
                       _selectedDepartment = null;
                     });
@@ -131,27 +180,90 @@ class _GroupsListScreenState extends State<GroupsListScreen>
                 ...AppConstants.departments.take(5).map((dept) {
                   return Padding(
                     padding: const EdgeInsets.only(right: 8),
-                    child: FilterChip(
-                      label: Text(dept),
-                      selected: _selectedDepartment == dept,
-                      onSelected: (selected) {
+                    child: _buildFilterChip(
+                      label: dept,
+                      isSelected: _selectedDepartment == dept,
+                      onTap: () {
                         setState(() {
-                          _selectedDepartment = selected ? dept : null;
+                          _selectedDepartment = dept;
                         });
                       },
                     ),
                   );
                 }),
                 // More button
-                ActionChip(
-                  label: const Text('More...'),
-                  avatar: const Icon(Icons.filter_list, size: 18),
-                  onPressed: () => _showDepartmentFilter(),
+                InkWell(
+                  onTap: () => _showDepartmentFilter(),
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.gray200.withValues(alpha: 0.5),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: AppColors.gray300),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.filter_list_rounded, 
+                          size: 18, 
+                          color: AppColors.gray700,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'More',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.gray700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [AppColors.primary, AppColors.primaryLight],
+                )
+              : null,
+          color: isSelected ? null : AppColors.gray100,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isSelected ? AppColors.primary : AppColors.gray300,
+            width: isSelected ? 1.5 : 1,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : AppColors.gray700,
+          ),
+        ),
       ),
     );
   }
@@ -437,112 +549,246 @@ class _GroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: AppColors.gray200),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? AppColors.surfaceDark : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+        border: Border.all(
+          color: isDark 
+              ? AppColors.gray700.withValues(alpha: 0.5)
+              : AppColors.gray200.withValues(alpha: 0.5),
+        ),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () {
-          Navigator.pushNamed(
-            context,
-            '/group-details',
-            arguments: group.id,
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          group.name,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            fontFamily: 'Poppins',
-                          ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              '/group-details',
+              arguments: group.id,
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Header with title and status badge
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Icon container with gradient
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            AppColors.primary.withValues(alpha: 0.8),
+                            AppColors.primaryLight,
+                          ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          group.courseCode,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: AppColors.primary,
-                            fontWeight: FontWeight.w500,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.primary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
                           ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.groups_rounded,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Title and course code
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            group.name,
+                            style: TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Poppins',
+                              color: isDark ? Colors.white : AppColors.gray900,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.primary.withValues(alpha: 0.1),
+                                  AppColors.primaryLight.withValues(alpha: 0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.3),
+                              ),
+                            ),
+                            child: Text(
+                              group.courseCode,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: AppColors.primary,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Status badge with gradient
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            _getStatusColor(),
+                            _getStatusColor().withValues(alpha: 0.7),
+                          ],
                         ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: _getStatusColor().withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _getStatusIcon(),
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getStatusText(),
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                
+                // Description
+                if (group.description.isNotEmpty) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    group.description,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: isDark ? AppColors.gray400 : AppColors.gray600,
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+                
+                const SizedBox(height: 16),
+                
+                // Divider
+                Container(
+                  height: 1,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.transparent,
+                        (isDark ? AppColors.gray700 : AppColors.gray300)
+                            .withValues(alpha: 0.5),
+                        Colors.transparent,
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // Info chips
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _InfoChip(
+                      icon: Icons.people_rounded,
+                      label: '${group.memberIds.length}/${group.maxMembers} members',
+                      color: AppColors.info,
                     ),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor().withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
+                    _InfoChip(
+                      icon: Icons.school_rounded,
+                      label: group.courseName,
+                      color: AppColors.accent,
                     ),
-                    child: Text(
-                      _getStatusText(),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _getStatusColor(),
-                        fontWeight: FontWeight.w600,
+                    if (group.location.isNotEmpty)
+                      _InfoChip(
+                        icon: Icons.location_on_rounded,
+                        label: group.location,
+                        color: AppColors.warning,
                       ),
+                    _InfoChip(
+                      icon: group.isPublic ? Icons.public_rounded : Icons.lock_rounded,
+                      label: group.isPublic ? 'Public' : 'Private',
+                      color: group.isPublic ? AppColors.success : AppColors.warning,
                     ),
-                  ),
-                ],
-              ),
-              if (group.description.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(
-                  group.description,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.gray600,
+                  ],
+                ),
+                
+                // Navigation arrow
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      Icons.arrow_forward_rounded,
+                      size: 18,
+                      color: AppColors.primary,
+                    ),
                   ),
                 ),
               ],
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  _InfoChip(
-                    icon: Icons.people,
-                    label: '${group.memberIds.length}/${group.maxMembers} members',
-                  ),
-                  _InfoChip(
-                    icon: Icons.school,
-                    label: group.courseName,
-                  ),
-                  if (group.isPublic)
-                    _InfoChip(
-                      icon: Icons.public,
-                      label: 'Public',
-                      color: AppColors.success,
-                    ),
-                  if (!group.isPublic)
-                    _InfoChip(
-                      icon: Icons.lock,
-                      label: 'Private',
-                      color: AppColors.warning,
-                    ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
@@ -556,6 +802,15 @@ class _GroupCard extends StatelessWidget {
       return AppColors.warning;
     }
     return AppColors.success;
+  }
+
+  IconData _getStatusIcon() {
+    if (group.memberIds.length >= group.maxMembers) {
+      return Icons.block_rounded;
+    } else if (group.memberIds.length >= (group.maxMembers * 0.8)) {
+      return Icons.warning_rounded;
+    }
+    return Icons.check_circle_rounded;
   }
 
   String _getStatusText() {
@@ -583,23 +838,36 @@ class _InfoChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final chipColor = color ?? AppColors.gray600;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: chipColor.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            chipColor.withValues(alpha: isDark ? 0.2 : 0.12),
+            chipColor.withValues(alpha: isDark ? 0.15 : 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: chipColor.withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: chipColor),
-          const SizedBox(width: 4),
+          Icon(icon, size: 15, color: chipColor),
+          const SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
               fontSize: 12,
               color: chipColor,
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w600,
             ),
           ),
         ],
