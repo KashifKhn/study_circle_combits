@@ -3,10 +3,16 @@ import 'package:provider/provider.dart';
 import 'package:study_circle/models/study_group_model.dart';
 import 'package:study_circle/models/study_session_model.dart';
 import 'package:study_circle/models/join_request_model.dart';
+import 'package:study_circle/models/resource_model.dart';
 import 'package:study_circle/providers/auth_provider.dart' as app_auth;
 import 'package:study_circle/services/firestore_service.dart';
 import 'package:study_circle/screens/groups/join_requests_screen.dart';
 import 'package:study_circle/theme/app_colors.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:study_circle/config/cloudinary_config.dart';
+import 'package:study_circle/utils/logger.dart';
+import 'dart:io';
+import 'package:url_launcher/url_launcher.dart';
 
 class GroupDetailsScreen extends StatefulWidget {
   final String groupId;
@@ -26,7 +32,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) {
         setState(() {}); // Rebuild to update FAB visibility
@@ -87,26 +93,31 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
                     _buildAboutTab(group),
                     _buildMembersTab(group),
                     _buildSessionsTab(group),
+                    _buildResourcesTab(group),
                   ],
                 ),
               ),
             ],
           ),
-          floatingActionButton: isMember && _tabController.index == 2
+          floatingActionButton: isMember && (_tabController.index == 2 || _tabController.index == 3)
               ? FloatingActionButton.extended(
                   onPressed: () {
-                    Navigator.pushNamed(
-                      context,
-                      '/create-session',
-                      arguments: {
-                        'group': group,
-                        'session': null,
-                      },
-                    );
+                    if (_tabController.index == 2) {
+                      Navigator.pushNamed(
+                        context,
+                        '/create-session',
+                        arguments: {
+                          'group': group,
+                          'session': null,
+                        },
+                      );
+                    } else if (_tabController.index == 3) {
+                      _showUploadResourceDialog(group, currentUser);
+                    }
                   },
                   backgroundColor: AppColors.primary,
-                  icon: const Icon(Icons.add),
-                  label: const Text('New Session'),
+                  icon: Icon(_tabController.index == 2 ? Icons.add : Icons.upload_file),
+                  label: Text(_tabController.index == 2 ? 'New Session' : 'Upload File'),
                 )
               : null,
           bottomNavigationBar: _buildBottomBar(group, isMember, isCreator, currentUser?.uid),
@@ -355,6 +366,7 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
         Tab(text: 'About'),
         Tab(text: 'Members'),
         Tab(text: 'Sessions'),
+        Tab(text: 'Resources'),
       ],
     );
   }
@@ -936,6 +948,472 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     } else {
       final years = (difference.inDays / 365).floor();
       return '$years ${years == 1 ? 'year' : 'years'} ago';
+    }
+  }
+
+  // ==================== RESOURCES TAB ====================
+
+  Widget _buildResourcesTab(StudyGroupModel group) {
+    return StreamBuilder<List<ResourceModel>>(
+      stream: _firestoreService.getGroupResources(group.id),
+      builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Text('Error: ${snapshot.error}'),
+          );
+        }
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        final resources = snapshot.data ?? [];
+
+        if (resources.isEmpty) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.folder_open, size: 80, color: AppColors.gray400),
+                  const SizedBox(height: 20),
+                  Text(
+                    'No Resources Yet',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.gray800,
+                      fontFamily: 'Poppins',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Share study materials, notes, and documents with your group members',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.gray600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: resources.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 12),
+          itemBuilder: (context, index) {
+            final resource = resources[index];
+            return _buildResourceCard(resource, group);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildResourceCard(ResourceModel resource, StudyGroupModel group) {
+    final authProvider = context.read<app_auth.AuthProvider>();
+    final currentUser = authProvider.userModel;
+    final isUploader = currentUser != null && resource.uploadedBy == currentUser.uid;
+
+    IconData fileIcon;
+    Color fileColor;
+
+    switch (resource.fileType) {
+      case 'pdf':
+        fileIcon = Icons.picture_as_pdf;
+        fileColor = Colors.red;
+        break;
+      case 'image':
+        fileIcon = Icons.image;
+        fileColor = Colors.blue;
+        break;
+      case 'video':
+        fileIcon = Icons.video_file;
+        fileColor = Colors.purple;
+        break;
+      default:
+        fileIcon = Icons.insert_drive_file;
+        fileColor = AppColors.gray600;
+    }
+
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: () => _downloadResource(resource),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: fileColor.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(fileIcon, color: fileColor, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          resource.title,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          resource.fileName,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: AppColors.gray600,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isUploader)
+                    IconButton(
+                      icon: Icon(Icons.delete, color: AppColors.error),
+                      onPressed: () => _confirmDeleteResource(resource),
+                    ),
+                ],
+              ),
+              if (resource.description.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  resource.description,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: AppColors.gray700,
+                  ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Icon(Icons.person, size: 14, color: AppColors.gray500),
+                  const SizedBox(width: 4),
+                  Text(
+                    resource.uploaderName,
+                    style: TextStyle(fontSize: 12, color: AppColors.gray600),
+                  ),
+                  const SizedBox(width: 12),
+                  Icon(Icons.access_time, size: 14, color: AppColors.gray500),
+                  const SizedBox(width: 4),
+                  Text(
+                    _formatDate(resource.uploadedAt),
+                    style: TextStyle(fontSize: 12, color: AppColors.gray600),
+                  ),
+                  const Spacer(),
+                  Text(
+                    resource.formattedFileSize,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+              if (resource.tags.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: resource.tags.map((tag) {
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        tag,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.primary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showUploadResourceDialog(
+    StudyGroupModel group,
+    dynamic currentUser,
+  ) async {
+    if (currentUser == null) return;
+
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final tagsController = TextEditingController();
+    File? selectedFile;
+    String? fileName;
+
+    await showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Upload Resource'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (selectedFile == null)
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final result = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['pdf', 'doc', 'docx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'txt', 'zip'],
+                        );
+
+                        if (result != null) {
+                          setState(() {
+                            selectedFile = File(result.files.single.path!);
+                            fileName = result.files.single.name;
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.attach_file),
+                      label: const Text('Select File'),
+                    )
+                  else
+                    Card(
+                      child: ListTile(
+                        leading: const Icon(Icons.insert_drive_file),
+                        title: Text(fileName ?? 'Unknown file'),
+                        trailing: IconButton(
+                          icon: const Icon(Icons.close),
+                          onPressed: () {
+                            setState(() {
+                              selectedFile = null;
+                              fileName = null;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: titleController,
+                    decoration: const InputDecoration(
+                      labelText: 'Title',
+                      hintText: 'e.g., Chapter 3 Notes',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: descriptionController,
+                    decoration: const InputDecoration(
+                      labelText: 'Description (optional)',
+                      hintText: 'Brief description of the resource',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 2,
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: tagsController,
+                    decoration: const InputDecoration(
+                      labelText: 'Tags (optional)',
+                      hintText: 'exam, notes, lecture (comma separated)',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('Cancel'),
+              ),
+              ElevatedButton(
+                onPressed: selectedFile == null || titleController.text.trim().isEmpty
+                    ? null
+                    : () async {
+                        Navigator.pop(dialogContext);
+                        await _uploadResource(
+                          group,
+                          currentUser,
+                          selectedFile!,
+                          fileName!,
+                          titleController.text.trim(),
+                          descriptionController.text.trim(),
+                          tagsController.text.trim(),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('Upload'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _uploadResource(
+    StudyGroupModel group,
+    dynamic currentUser,
+    File file,
+    String fileName,
+    String title,
+    String description,
+    String tagsString,
+  ) async {
+    try {
+      // Show loading
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                ),
+                const SizedBox(width: 16),
+                const Text('Uploading file...'),
+              ],
+            ),
+            duration: const Duration(minutes: 5),
+          ),
+        );
+      }
+
+      // Upload to Cloudinary
+      final fileUrl = await CloudinaryConfig.uploadFile(file);
+
+      if (fileUrl == null) {
+        throw 'Failed to upload file to cloud storage';
+      }
+
+      // Determine file type
+      final extension = fileName.split('.').last.toLowerCase();
+      String fileType;
+      if (['jpg', 'jpeg', 'png', 'gif', 'webp'].contains(extension)) {
+        fileType = 'image';
+      } else if (extension == 'pdf') {
+        fileType = 'pdf';
+      } else if (['mp4', 'mov', 'avi', 'mkv'].contains(extension)) {
+        fileType = 'video';
+      } else {
+        fileType = 'other';
+      }
+
+      // Parse tags
+      final tags = tagsString.isEmpty
+          ? <String>[]
+          : tagsString.split(',').map((t) => t.trim()).where((t) => t.isNotEmpty).toList();
+
+      // Create resource model
+      final resource = ResourceModel(
+        id: '',
+        groupId: group.id,
+        uploadedBy: currentUser.uid,
+        uploaderName: currentUser.name,
+        title: title,
+        description: description,
+        fileUrl: fileUrl,
+        fileType: fileType,
+        fileName: fileName,
+        fileSizeBytes: await file.length(),
+        uploadedAt: DateTime.now(),
+        tags: tags,
+      );
+
+      // Save to Firestore
+      await _firestoreService.uploadResource(resource);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Resource uploaded successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.error('Failed to upload resource', e, StackTrace.current);
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        _showErrorSnackBar('Failed to upload resource: $e');
+      }
+    }
+  }
+
+  Future<void> _downloadResource(ResourceModel resource) async {
+    try {
+      final url = Uri.parse(resource.fileUrl);
+      if (await canLaunchUrl(url)) {
+        await launchUrl(url, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not open file';
+      }
+    } catch (e) {
+      AppLogger.error('Failed to download resource', e, StackTrace.current);
+      _showErrorSnackBar('Failed to open file: $e');
+    }
+  }
+
+  Future<void> _confirmDeleteResource(ResourceModel resource) async {
+    final confirmed = await _showConfirmDialog(
+      'Delete Resource',
+      'Are you sure you want to delete "${resource.title}"? This action cannot be undone.',
+    );
+
+    if (!confirmed) return;
+
+    try {
+      await _firestoreService.deleteResource(resource.id);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Resource deleted successfully'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      AppLogger.error('Failed to delete resource', e, StackTrace.current);
+      if (mounted) {
+        _showErrorSnackBar('Failed to delete resource: $e');
+      }
     }
   }
 }
