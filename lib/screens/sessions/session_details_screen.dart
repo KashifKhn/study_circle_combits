@@ -32,17 +32,16 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<app_auth.AuthProvider>();
     final currentUser = authProvider.userModel;
-    final isGroupMember = currentUser != null && widget.group.memberIds.contains(currentUser.uid);
-    final isCreator = currentUser != null && widget.session.createdBy == currentUser.uid;
+    final isGroupMember =
+        currentUser != null && widget.group.memberIds.contains(currentUser.uid);
+    final isCreator =
+        currentUser != null && widget.session.createdBy == currentUser.uid;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Session Details',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Poppins',
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
         ),
         actions: [
           if (isCreator) ...[
@@ -76,7 +75,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             return _buildErrorState('Session not found');
           }
 
-          final userRsvpStatus = currentUser != null ? session.getUserRsvpStatus(currentUser.uid) : null;
+          final userRsvpStatus = currentUser != null
+              ? session.getUserRsvpStatus(currentUser.uid)
+              : null;
 
           return SingleChildScrollView(
             child: Column(
@@ -91,7 +92,12 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   const SizedBox(height: 16),
                 ],
                 if (isGroupMember) ...[
-                  _buildRsvpSection(session, currentUser.uid, currentUser.name, userRsvpStatus),
+                  _buildRsvpSection(
+                    session,
+                    currentUser.uid,
+                    currentUser.name,
+                    userRsvpStatus,
+                  ),
                   const SizedBox(height: 16),
                 ],
                 _buildAttendeesSection(session),
@@ -251,7 +257,12 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  Widget _buildRsvpSection(StudySessionModel session, String userId, String userName, RsvpStatus? currentStatus) {
+  Widget _buildRsvpSection(
+    StudySessionModel session,
+    String userId,
+    String userName,
+    RsvpStatus? currentStatus,
+  ) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
       child: Column(
@@ -276,7 +287,12 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   color: AppColors.success,
                   status: RsvpStatus.attending,
                   currentStatus: currentStatus,
-                  onPressed: () => _updateRsvp(session, userId, userName, RsvpStatus.attending),
+                  onPressed: () => _updateRsvp(
+                    session,
+                    userId,
+                    userName,
+                    RsvpStatus.attending,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -287,7 +303,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   color: AppColors.warning,
                   status: RsvpStatus.maybe,
                   currentStatus: currentStatus,
-                  onPressed: () => _updateRsvp(session, userId, userName, RsvpStatus.maybe),
+                  onPressed: () =>
+                      _updateRsvp(session, userId, userName, RsvpStatus.maybe),
                 ),
               ),
               const SizedBox(width: 8),
@@ -298,7 +315,12 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                   color: AppColors.error,
                   status: RsvpStatus.notAttending,
                   currentStatus: currentStatus,
-                  onPressed: () => _updateRsvp(session, userId, userName, RsvpStatus.notAttending),
+                  onPressed: () => _updateRsvp(
+                    session,
+                    userId,
+                    userName,
+                    RsvpStatus.notAttending,
+                  ),
                 ),
               ),
             ],
@@ -321,23 +343,19 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     return OutlinedButton(
       onPressed: _isUpdatingRsvp ? null : onPressed,
       style: OutlinedButton.styleFrom(
-        backgroundColor: isSelected ? color.withValues(alpha: 0.15) : Colors.transparent,
+        backgroundColor: isSelected
+            ? color.withValues(alpha: 0.15)
+            : Colors.transparent,
         side: BorderSide(
           color: isSelected ? color : AppColors.gray300,
           width: isSelected ? 2 : 1,
         ),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),
       child: Column(
         children: [
-          Icon(
-            icon,
-            color: isSelected ? color : AppColors.gray500,
-            size: 24,
-          ),
+          Icon(icon, color: isSelected ? color : AppColors.gray500, size: 24),
           const SizedBox(height: 4),
           Text(
             label,
@@ -353,9 +371,15 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
   }
 
   Widget _buildAttendeesSection(StudySessionModel session) {
-    final attendingList = session.rsvps.values.where((r) => r.status == RsvpStatus.attending).toList();
-    final maybeList = session.rsvps.values.where((r) => r.status == RsvpStatus.maybe).toList();
-    final notAttendingList = session.rsvps.values.where((r) => r.status == RsvpStatus.notAttending).toList();
+    final attendingList = session.rsvps.values
+        .where((r) => r.status == RsvpStatus.attending)
+        .toList();
+    final maybeList = session.rsvps.values
+        .where((r) => r.status == RsvpStatus.maybe)
+        .toList();
+    final notAttendingList = session.rsvps.values
+        .where((r) => r.status == RsvpStatus.notAttending)
+        .toList();
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -401,7 +425,11 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             const SizedBox(height: 12),
           ],
           if (notAttendingList.isNotEmpty) ...[
-            _buildAttendeeGroup('Cannot Attend', notAttendingList, AppColors.error),
+            _buildAttendeeGroup(
+              'Cannot Attend',
+              notAttendingList,
+              AppColors.error,
+            ),
           ],
           if (session.rsvps.isEmpty)
             Center(
@@ -409,10 +437,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
                 padding: const EdgeInsets.all(24),
                 child: Text(
                   'No responses yet',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AppColors.gray500,
-                  ),
+                  style: TextStyle(fontSize: 14, color: AppColors.gray500),
                 ),
               ),
             ),
@@ -421,7 +446,11 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  Widget _buildAttendeeGroup(String title, List<RsvpModel> attendees, Color color) {
+  Widget _buildAttendeeGroup(
+    String title,
+    List<RsvpModel> attendees,
+    Color color,
+  ) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -463,43 +492,41 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
           ],
         ),
         const SizedBox(height: 8),
-        ...attendees.map((rsvp) => Padding(
-              padding: const EdgeInsets.only(bottom: 6),
-              child: Row(
-                children: [
-                  const SizedBox(width: 12),
-                  CircleAvatar(
-                    radius: 16,
-                    backgroundColor: color.withValues(alpha: 0.2),
-                    child: Text(
-                      rsvp.userName.isNotEmpty ? rsvp.userName[0].toUpperCase() : '?',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: color,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      rsvp.userName,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AppColors.gray700,
-                      ),
-                    ),
-                  ),
-                  Text(
-                    _formatTimestamp(rsvp.respondedAt),
+        ...attendees.map(
+          (rsvp) => Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                const SizedBox(width: 12),
+                CircleAvatar(
+                  radius: 16,
+                  backgroundColor: color.withValues(alpha: 0.2),
+                  child: Text(
+                    rsvp.userName.isNotEmpty
+                        ? rsvp.userName[0].toUpperCase()
+                        : '?',
                     style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.gray500,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: color,
                     ),
                   ),
-                ],
-              ),
-            )),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    rsvp.userName,
+                    style: TextStyle(fontSize: 14, color: AppColors.gray700),
+                  ),
+                ),
+                Text(
+                  _formatTimestamp(rsvp.respondedAt),
+                  style: TextStyle(fontSize: 12, color: AppColors.gray500),
+                ),
+              ],
+            ),
+          ),
+        ),
       ],
     );
   }
@@ -541,10 +568,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.gray600,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.gray600),
             ),
           ],
         ),
@@ -552,7 +576,12 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     );
   }
 
-  Future<void> _updateRsvp(StudySessionModel session, String userId, String userName, RsvpStatus status) async {
+  Future<void> _updateRsvp(
+    StudySessionModel session,
+    String userId,
+    String userName,
+    RsvpStatus status,
+  ) async {
     setState(() => _isUpdatingRsvp = true);
 
     try {
@@ -566,7 +595,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('RSVP updated to ${status.toString().split('.').last}'),
+            content: Text(
+              'RSVP updated to ${status.toString().split('.').last}',
+            ),
             backgroundColor: AppColors.success,
           ),
         );
@@ -592,10 +623,8 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CreateSessionScreen(
-          group: widget.group,
-          session: widget.session,
-        ),
+        builder: (context) =>
+            CreateSessionScreen(group: widget.group, session: widget.session),
       ),
     );
 
@@ -614,7 +643,9 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Session'),
-        content: const Text('Are you sure you want to delete this session? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to delete this session? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
@@ -639,7 +670,7 @@ class _SessionDetailsScreenState extends State<SessionDetailsScreen> {
       await _firestoreService.deleteSession(widget.session.id);
 
       if (mounted) {
-        Navigator.pop(context); // Go back to sessions list
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Session deleted successfully'),

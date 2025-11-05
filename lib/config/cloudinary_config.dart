@@ -3,19 +3,14 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:study_circle/utils/logger.dart';
 
-/// Cloudinary configuration and upload service
 class CloudinaryConfig {
-  // Cloudinary credentials
   static const String cloudName = 'dwi4kicqh';
   static const String apiKey = '789971392183486';
   static const String apiSecret = 'El-C5nWZm2CMklFUXmNqbPZa__0';
   static const String uploadPreset = 'study_circle_uploads';
 
-  // Base URL for Cloudinary API
   static const String baseUrl = 'https://api.cloudinary.com/v1_1/$cloudName';
 
-  /// Upload an image to Cloudinary
-  /// Returns the secure URL of the uploaded image
   static Future<String?> uploadImage(File imageFile) async {
     try {
       AppLogger.info('Uploading image to Cloudinary...');
@@ -23,16 +18,13 @@ class CloudinaryConfig {
       final url = Uri.parse('$baseUrl/image/upload');
       final request = http.MultipartRequest('POST', url);
 
-      // Add upload preset and file
       request.fields['upload_preset'] = uploadPreset;
       request.fields['folder'] = 'study_circle/images';
 
-      // Add file
       request.files.add(
         await http.MultipartFile.fromPath('file', imageFile.path),
       );
 
-      // Send request
       final response = await request.send();
       final responseData = await response.stream.toBytes();
       final responseString = String.fromCharCodes(responseData);
@@ -52,8 +44,6 @@ class CloudinaryConfig {
     }
   }
 
-  /// Upload a PDF to Cloudinary
-  /// Returns the secure URL of the uploaded PDF
   static Future<String?> uploadPDF(File pdfFile) async {
     try {
       AppLogger.info('Uploading PDF to Cloudinary...');
@@ -61,16 +51,13 @@ class CloudinaryConfig {
       final url = Uri.parse('$baseUrl/raw/upload');
       final request = http.MultipartRequest('POST', url);
 
-      // Add upload preset and file
       request.fields['upload_preset'] = uploadPreset;
       request.fields['folder'] = 'study_circle/pdfs';
 
-      // Add file
       request.files.add(
         await http.MultipartFile.fromPath('file', pdfFile.path),
       );
 
-      // Send request
       final response = await request.send();
       final responseData = await response.stream.toBytes();
       final responseString = String.fromCharCodes(responseData);
@@ -90,8 +77,6 @@ class CloudinaryConfig {
     }
   }
 
-  /// Upload a video to Cloudinary
-  /// Returns the secure URL of the uploaded video
   static Future<String?> uploadVideo(File videoFile) async {
     try {
       AppLogger.info('Uploading video to Cloudinary...');
@@ -99,16 +84,13 @@ class CloudinaryConfig {
       final url = Uri.parse('$baseUrl/video/upload');
       final request = http.MultipartRequest('POST', url);
 
-      // Add upload preset and file
       request.fields['upload_preset'] = uploadPreset;
       request.fields['folder'] = 'study_circle/videos';
 
-      // Add file
       request.files.add(
         await http.MultipartFile.fromPath('file', videoFile.path),
       );
 
-      // Send request
       final response = await request.send();
       final responseData = await response.stream.toBytes();
       final responseString = String.fromCharCodes(responseData);
@@ -128,8 +110,6 @@ class CloudinaryConfig {
     }
   }
 
-  /// Upload any file type to Cloudinary
-  /// Automatically detects the file type and uploads accordingly
   static Future<String?> uploadFile(File file) async {
     final extension = file.path.split('.').last.toLowerCase();
 
@@ -140,13 +120,10 @@ class CloudinaryConfig {
     } else if (['mp4', 'mov', 'avi', 'mkv'].contains(extension)) {
       return uploadVideo(file);
     } else {
-      // Upload as raw file
-      return uploadPDF(file); // Use raw upload endpoint
+      return uploadPDF(file);
     }
   }
 
-  /// Get an optimized URL for an image
-  /// Adds transformation parameters for better performance
   static String getOptimizedImageUrl(
     String publicId, {
     int? width,

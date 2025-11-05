@@ -25,16 +25,14 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   Widget build(BuildContext context) {
     final authProvider = context.watch<app_auth.AuthProvider>();
     final currentUser = authProvider.userModel;
-    final isGroupMember = currentUser != null && widget.group.memberIds.contains(currentUser.uid);
+    final isGroupMember =
+        currentUser != null && widget.group.memberIds.contains(currentUser.uid);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text(
           'Study Sessions',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            fontFamily: 'Poppins',
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, fontFamily: 'Poppins'),
         ),
       ),
       body: Column(
@@ -45,7 +43,9 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
               stream: _firestoreService.getGroupSessions(widget.group.id),
               builder: (context, snapshot) {
                 if (snapshot.hasError) {
-                  return _buildErrorState('Error loading sessions: ${snapshot.error}');
+                  return _buildErrorState(
+                    'Error loading sessions: ${snapshot.error}',
+                  );
                 }
 
                 if (snapshot.connectionState == ConnectionState.waiting) {
@@ -58,39 +58,49 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                   return _buildEmptyState();
                 }
 
-                // Separate upcoming and past sessions
                 final now = DateTime.now();
-                final upcomingSessions = sessions.where((s) => s.dateTime.isAfter(now)).toList();
-                final pastSessions = sessions.where((s) => s.dateTime.isBefore(now)).toList();
+                final upcomingSessions = sessions
+                    .where((s) => s.dateTime.isAfter(now))
+                    .toList();
+                final pastSessions = sessions
+                    .where((s) => s.dateTime.isBefore(now))
+                    .toList();
 
                 return ListView(
                   padding: const EdgeInsets.all(16),
                   children: [
                     if (upcomingSessions.isNotEmpty) ...[
-                      _buildSectionHeader('Upcoming Sessions', upcomingSessions.length),
+                      _buildSectionHeader(
+                        'Upcoming Sessions',
+                        upcomingSessions.length,
+                      ),
                       const SizedBox(height: 12),
-                      ...upcomingSessions.map((session) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _SessionCard(
-                              session: session,
-                              group: widget.group,
-                              currentUserId: currentUser?.uid,
-                            ),
-                          )),
+                      ...upcomingSessions.map(
+                        (session) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _SessionCard(
+                            session: session,
+                            group: widget.group,
+                            currentUserId: currentUser?.uid,
+                          ),
+                        ),
+                      ),
                     ],
                     if (pastSessions.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       _buildSectionHeader('Past Sessions', pastSessions.length),
                       const SizedBox(height: 12),
-                      ...pastSessions.map((session) => Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: _SessionCard(
-                              session: session,
-                              group: widget.group,
-                              currentUserId: currentUser?.uid,
-                              isPast: true,
-                            ),
-                          )),
+                      ...pastSessions.map(
+                        (session) => Padding(
+                          padding: const EdgeInsets.only(bottom: 12),
+                          child: _SessionCard(
+                            session: session,
+                            group: widget.group,
+                            currentUserId: currentUser?.uid,
+                            isPast: true,
+                          ),
+                        ),
+                      ),
                     ],
                   ],
                 );
@@ -138,10 +148,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
                 const SizedBox(height: 2),
                 Text(
                   widget.group.courseCode,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: AppColors.gray600,
-                  ),
+                  style: TextStyle(fontSize: 13, color: AppColors.gray600),
                 ),
               ],
             ),
@@ -205,10 +212,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
             Text(
               'Schedule your first study session to get started!',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.gray600,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.gray600),
             ),
           ],
         ),
@@ -238,10 +242,7 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.gray600,
-              ),
+              style: TextStyle(fontSize: 14, color: AppColors.gray600),
             ),
           ],
         ),
@@ -257,7 +258,6 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
       ),
     );
 
-    // Refresh is automatic via StreamBuilder
     if (result == true && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -269,7 +269,6 @@ class _SessionsListScreenState extends State<SessionsListScreen> {
   }
 }
 
-// Session Card Widget
 class _SessionCard extends StatelessWidget {
   final StudySessionModel session;
   final StudyGroupModel group;
@@ -285,7 +284,9 @@ class _SessionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final userRsvpStatus = currentUserId != null ? session.getUserRsvpStatus(currentUserId!) : null;
+    final userRsvpStatus = currentUserId != null
+        ? session.getUserRsvpStatus(currentUserId!)
+        : null;
     final dateFormat = DateFormat('MMM dd, yyyy');
     final timeFormat = DateFormat('h:mm a');
 
@@ -293,14 +294,11 @@ class _SessionCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
-        side: BorderSide(
-          color: isPast ? AppColors.gray300 : AppColors.gray200,
-        ),
+        side: BorderSide(color: isPast ? AppColors.gray300 : AppColors.gray200),
       ),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () {
-          // Navigate to session details
           Navigator.pushNamed(
             context,
             '/session-details',
@@ -325,7 +323,9 @@ class _SessionCard extends StatelessWidget {
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                             fontFamily: 'Poppins',
-                            color: isPast ? AppColors.gray600 : AppColors.gray800,
+                            color: isPast
+                                ? AppColors.gray600
+                                : AppColors.gray800,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -333,7 +333,9 @@ class _SessionCard extends StatelessWidget {
                           session.topic,
                           style: TextStyle(
                             fontSize: 14,
-                            color: isPast ? AppColors.gray500 : AppColors.primary,
+                            color: isPast
+                                ? AppColors.gray500
+                                : AppColors.primary,
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -354,10 +356,7 @@ class _SessionCard extends StatelessWidget {
                 '${timeFormat.format(session.dateTime)} • ${session.durationMinutes} min',
               ),
               const SizedBox(height: 8),
-              _buildInfoRow(
-                Icons.location_on,
-                session.location,
-              ),
+              _buildInfoRow(Icons.location_on, session.location),
               const SizedBox(height: 12),
               _buildRsvpSummary(),
             ],
@@ -435,11 +434,19 @@ class _SessionCard extends StatelessWidget {
   Widget _buildRsvpSummary() {
     return Row(
       children: [
-        _buildRsvpCount(Icons.check_circle, session.attendingCount, AppColors.success),
+        _buildRsvpCount(
+          Icons.check_circle,
+          session.attendingCount,
+          AppColors.success,
+        ),
         const SizedBox(width: 12),
         _buildRsvpCount(Icons.help, session.maybeCount, AppColors.warning),
         const SizedBox(width: 12),
-        _buildRsvpCount(Icons.cancel, session.notAttendingCount, AppColors.error),
+        _buildRsvpCount(
+          Icons.cancel,
+          session.notAttendingCount,
+          AppColors.error,
+        ),
       ],
     );
   }

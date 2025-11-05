@@ -60,26 +60,35 @@ class MyApp extends StatelessWidget {
             routes: {
               '/create-group': (context) => const CreateGroupScreen(),
               '/group-details': (context) {
-                final groupId = ModalRoute.of(context)!.settings.arguments as String;
+                final groupId =
+                    ModalRoute.of(context)!.settings.arguments as String;
                 return GroupDetailsScreen(groupId: groupId);
               },
               '/edit-group': (context) {
-                final group = ModalRoute.of(context)!.settings.arguments as StudyGroupModel;
+                final group =
+                    ModalRoute.of(context)!.settings.arguments
+                        as StudyGroupModel;
                 return CreateGroupScreen(group: group);
               },
               '/sessions-list': (context) {
-                final group = ModalRoute.of(context)!.settings.arguments as StudyGroupModel;
+                final group =
+                    ModalRoute.of(context)!.settings.arguments
+                        as StudyGroupModel;
                 return SessionsListScreen(group: group);
               },
               '/session-details': (context) {
-                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+                final args =
+                    ModalRoute.of(context)!.settings.arguments
+                        as Map<String, dynamic>;
                 return SessionDetailsScreen(
                   session: args['session'] as StudySessionModel,
                   group: args['group'] as StudyGroupModel,
                 );
               },
               '/create-session': (context) {
-                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+                final args =
+                    ModalRoute.of(context)!.settings.arguments
+                        as Map<String, dynamic>;
                 return CreateSessionScreen(
                   group: args['group'] as StudyGroupModel,
                   session: args['session'] as StudySessionModel?,
@@ -102,17 +111,13 @@ class AuthWrapper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<AuthProvider>(
       builder: (context, authProvider, _) {
-        // Show splash screen while initializing
         if (authProvider.status == AuthStatus.uninitialized) {
           return const SplashScreen();
         }
 
-        // Navigate based on auth status
         if (authProvider.isAuthenticated && authProvider.userModel != null) {
-          // User is authenticated - navigate to home
           return const HomeScreen();
         } else {
-          // User is not authenticated - show login
           return const LoginScreen();
         }
       },
