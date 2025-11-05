@@ -33,7 +33,7 @@ class ProfileScreen extends StatelessWidget {
                 _buildSettingsSection(context),
                 const Divider(height: 32),
                 _buildAboutSection(context),
-                const SizedBox(height: 32),
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 24),
               ],
             ),
           ),
@@ -44,7 +44,7 @@ class ProfileScreen extends StatelessWidget {
 
   Widget _buildAppBar(BuildContext context, UserModel user) {
     return SliverAppBar(
-      expandedHeight: 200,
+      expandedHeight: 220,
       pinned: true,
       flexibleSpace: FlexibleSpaceBar(
         background: Container(
@@ -55,23 +55,47 @@ class ProfileScreen extends StatelessWidget {
               end: Alignment.bottomRight,
             ),
           ),
-          child: Center(
+          child: SafeArea(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 40),
-                CircleAvatar(
-                  radius: 50,
-                  backgroundColor: Colors.white,
-                  child: Text(
-                    user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
-                    style: TextStyle(
-                      fontSize: 40,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                      fontFamily: 'Poppins',
+                const SizedBox(height: 20),
+                Stack(
+                  children: [
+                    CircleAvatar(
+                      radius: 55,
+                      backgroundColor: Colors.white,
+                      child: user.profileImageUrl.isNotEmpty
+                          ? ClipOval(
+                              child: Image.network(
+                                user.profileImageUrl,
+                                width: 110,
+                                height: 110,
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Text(
+                                    user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                                    style: TextStyle(
+                                      fontSize: 40,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.primary,
+                                      fontFamily: 'Poppins',
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          : Text(
+                              user.name.isNotEmpty ? user.name[0].toUpperCase() : 'U',
+                              style: TextStyle(
+                                fontSize: 40,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary,
+                                fontFamily: 'Poppins',
+                              ),
+                            ),
                     ),
-                  ),
+                  ],
                 ),
                 const SizedBox(height: 12),
                 Text(
@@ -91,6 +115,16 @@ class ProfileScreen extends StatelessWidget {
                     color: Colors.white70,
                   ),
                 ),
+                if (user.department.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    user.department,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.white60,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -190,22 +224,22 @@ class ProfileScreen extends StatelessWidget {
               ),
               TextButton.icon(
                 onPressed: () {
-                  // Navigate to edit profile
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Edit profile coming soon!'),
-                    ),
-                  );
+                  Navigator.pushNamed(context, '/edit-profile');
                 },
                 icon: const Icon(Icons.edit, size: 18),
                 label: const Text('Edit'),
+                style: TextButton.styleFrom(
+                  foregroundColor: AppColors.primary,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 16),
           _buildInfoRow(Icons.person, 'Name', user.name),
           _buildInfoRow(Icons.email, 'Email', user.email),
-          _buildInfoRow(Icons.school, 'Department', user.department),
+          _buildInfoRow(Icons.school, 'Department', user.department.isNotEmpty ? user.department : 'Not provided'),
+          _buildInfoRow(Icons.calendar_today, 'Year', user.year.toString()),
+          _buildInfoRow(Icons.format_list_numbered, 'Semester', 'Semester ${user.semester}'),
           _buildInfoRow(Icons.phone, 'Phone', user.phoneNumber.isNotEmpty ? user.phoneNumber : 'Not provided'),
           if (user.bio.isNotEmpty)
             _buildInfoRow(Icons.info, 'Bio', user.bio),
@@ -283,6 +317,15 @@ class ProfileScreen extends StatelessWidget {
               },
               activeColor: AppColors.primary,
             ),
+          ),
+          _buildSettingTile(
+            context,
+            icon: Icons.lock,
+            title: 'Change Password',
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () {
+              Navigator.pushNamed(context, '/change-password');
+            },
           ),
           _buildSettingTile(
             context,

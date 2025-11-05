@@ -6,6 +6,7 @@ import 'package:study_circle/models/rsvp_model.dart';
 import 'package:study_circle/providers/auth_provider.dart' as app_auth;
 import 'package:study_circle/services/firestore_service.dart';
 import 'package:study_circle/theme/app_colors.dart';
+import 'package:study_circle/screens/sessions/create_session_screen.dart';
 import 'package:intl/intl.dart';
 
 class MySessionsScreen extends StatefulWidget {
@@ -27,45 +28,101 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return StreamBuilder<List<StudySessionModel>>(
-      stream: _firestoreService.getUpcomingSessions(currentUser.joinedGroupIds),
-      builder: (context, snapshot) {
-        if (snapshot.hasError) {
-          return _buildErrorState('Error loading sessions: ${snapshot.error}');
-        }
+    // Check if user is in any groups
+    final hasGroups = currentUser.joinedGroupIds.isNotEmpty;
 
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
+    return Scaffold(
+      body: StreamBuilder<List<StudySessionModel>>(
+        stream: _firestoreService.getUpcomingSessions(currentUser.joinedGroupIds),
+        builder: (context, snapshot) {
+          if (snapshot.hasError) {
+            return _buildErrorState('Error loading sessions: ${snapshot.error}');
+          }
 
-        final sessions = snapshot.data ?? [];
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        if (sessions.isEmpty) {
-          return _buildEmptyState();
-        }
+          final sessions = snapshot.data ?? [];
 
-        // Separate upcoming and past sessions
-        final now = DateTime.now();
-        final upcomingSessions = sessions.where((s) => s.dateTime.isAfter(now)).toList();
+          if (sessions.isEmpty) {
+            return _buildEmptyState();
+          }
 
-        return ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (upcomingSessions.isNotEmpty) ...[
-              _buildSectionHeader('Upcoming Sessions', upcomingSessions.length),
-              const SizedBox(height: 12),
-              ...upcomingSessions.map((session) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: _SessionCard(
-                      session: session,
-                      currentUserId: currentUser.uid,
-                    ),
-                  )),
+          // Separate upcoming and past sessions
+          final now = DateTime.now();
+          final upcomingSessions = sessions.where((s) => s.dateTime.isAfter(now)).toList();
+
+          return ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              if (upcomingSessions.isNotEmpty) ...[
+                _buildSectionHeader('Upcoming Sessions', upcomingSessions.length),
+                const SizedBox(height: 12),
+                ...upcomingSessions.map((session) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: _SessionCard(
+                        session: session,
+                        currentUserId: currentUser.uid,
+                      ),
+                    )),
+              ],
             ],
-          ],
-        );
-      },
+          );
+        },
+      ),
+      floatingActionButton: hasGroups
+          ? FloatingActionButton.extended(
+              onPressed: () => _showCreateSessionDialog(currentUser.joinedGroupIds),
+              icon: const Icon(Icons.add),
+              label: const Text('New Session'),
+              backgroundColor: AppColors.primary,
+            )
+          : null,
     );
+  }
+
+  Future<void> _showCreateSessionDialog(List<String> groupIds) async {
+    if (groupIds.isEmpty) return;
+
+    // If user is in only one group, go directly to create session
+    if (groupIds.length == 1) {
+      final group = await _firestoreService.getStudyGroupById(groupIds.first);
+      if (group != null && mounted) {
+        _navigateToCreateSession(group);
+      }
+      return;
+    }
+
+    // If user is in multiple groups, show selection dialog
+    showDialog(
+      context: context,
+      builder: (context) => _GroupSelectionDialog(
+        groupIds: groupIds,
+        onGroupSelected: (group) {
+          Navigator.pop(context);
+          _navigateToCreateSession(group);
+        },
+      ),
+    );
+  }
+
+  Future<void> _navigateToCreateSession(StudyGroupModel group) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateSessionScreen(group: group),
+      ),
+    );
+
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   Widget _buildSectionHeader(String title, int count) {
@@ -163,6 +220,81 @@ class _MySessionsScreenState extends State<MySessionsScreen> {
           ],
         ),
       ),
+    );
+  }
+}
+
+// Group Selection Dialog
+class _GroupSelectionDialog extends StatelessWidget {
+  final List<String> groupIds;
+  final Function(StudyGroupModel) onGroupSelected;
+
+  const _GroupSelectionDialog({
+    required this.groupIds,
+    required this.onGroupSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final firestoreService = FirestoreService();
+
+    return AlertDialog(
+      title: const Text(
+        'Select Group',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontFamily: 'Poppins',
+        ),
+      ),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemCount: groupIds.length,
+          separatorBuilder: (context, index) => const Divider(),
+          itemBuilder: (context, index) {
+            return StreamBuilder<StudyGroupModel?>(
+              stream: firestoreService.getStudyGroupStream(groupIds[index]),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const ListTile(
+                    leading: CircularProgressIndicator(),
+                    title: Text('Loading...'),
+                  );
+                }
+
+                final group = snapshot.data;
+                if (group == null) {
+                  return const SizedBox.shrink();
+                }
+
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: AppColors.primary.withValues(alpha: 0.1),
+                    child: Icon(Icons.group, color: AppColors.primary, size: 20),
+                  ),
+                  title: Text(
+                    group.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  subtitle: Text(
+                    group.courseCode,
+                    style: TextStyle(color: AppColors.gray600, fontSize: 12),
+                  ),
+                  trailing: Icon(Icons.arrow_forward_ios, size: 16, color: AppColors.gray400),
+                  onTap: () => onGroupSelected(group),
+                );
+              },
+            );
+          },
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+      ],
     );
   }
 }

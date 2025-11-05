@@ -24,7 +24,9 @@ class RsvpModel {
         (e) => e.toString() == 'RsvpStatus.${data['status']}',
         orElse: () => RsvpStatus.attending,
       ),
-      respondedAt: (data['respondedAt'] as Timestamp).toDate(),
+      respondedAt: data['respondedAt'] != null 
+          ? (data['respondedAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 

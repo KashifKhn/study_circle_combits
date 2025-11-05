@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:study_circle/models/study_group_model.dart';
+import 'package:study_circle/models/study_session_model.dart';
 import 'package:study_circle/models/join_request_model.dart';
 import 'package:study_circle/providers/auth_provider.dart' as app_auth;
 import 'package:study_circle/services/firestore_service.dart';
@@ -473,9 +474,13 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Widget _buildSessionsTab(StudyGroupModel group) {
-    return StreamBuilder<List<dynamic>>(
+    return StreamBuilder<List<StudySessionModel>>(
       stream: _firestoreService.getGroupSessions(group.id),
       builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        
         final sessions = snapshot.data ?? [];
         final now = DateTime.now();
         final upcomingSessions = sessions.where((s) => s.dateTime.isAfter(now)).length;

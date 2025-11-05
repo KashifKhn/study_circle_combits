@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:study_circle/models/user_model.dart';
 import 'package:study_circle/models/study_session_model.dart';
+import 'package:study_circle/models/study_group_model.dart';
 import 'package:study_circle/providers/auth_provider.dart' as app_auth;
 import 'package:study_circle/providers/theme_provider.dart';
 import 'package:study_circle/services/firestore_service.dart';
@@ -167,6 +168,8 @@ class _DashboardTab extends StatelessWidget {
   }
 
   Widget _buildStatsCards() {
+    final firestoreService = FirestoreService();
+    
     return Row(
       children: [
         Expanded(
@@ -179,11 +182,17 @@ class _DashboardTab extends StatelessWidget {
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _StatCard(
-            icon: Icons.event_available,
-            title: 'Sessions',
-            value: user.sessionsAttended.toString(),
-            color: AppColors.success,
+          child: StreamBuilder<List<StudySessionModel>>(
+            stream: firestoreService.getUpcomingSessions(user.joinedGroupIds),
+            builder: (context, snapshot) {
+              final sessionCount = snapshot.data?.length ?? 0;
+              return _StatCard(
+                icon: Icons.event_available,
+                title: 'Upcoming Sessions',
+                value: sessionCount.toString(),
+                color: AppColors.success,
+              );
+            },
           ),
         ),
       ],
@@ -473,72 +482,95 @@ class _SessionPreviewCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final dateFormat = DateFormat('MMM dd');
     final timeFormat = DateFormat('h:mm a');
+    final firestoreService = FirestoreService();
 
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: AppColors.info.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.info.withValues(alpha: 0.2),
-        ),
-      ),
-      child: InkWell(
-        onTap: () {
-          // Navigate to session details
-          Navigator.pushNamed(
-            context,
-            '/session-details',
-            arguments: {'sessionId': session.id},
-          );
-        },
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.info.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.event,
-                color: AppColors.info,
-                size: 24,
-              ),
+    return StreamBuilder<StudyGroupModel?>(
+      stream: firestoreService.getStudyGroupStream(session.groupId),
+      builder: (context, groupSnapshot) {
+        final group = groupSnapshot.data;
+
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.info.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppColors.info.withValues(alpha: 0.2),
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    session.title,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+          ),
+          child: InkWell(
+            onTap: group != null
+                ? () {
+                    // Navigate to session details
+                    Navigator.pushNamed(
+                      context,
+                      '/session-details',
+                      arguments: {'session': session, 'group': group},
+                    );
+                  }
+                : null,
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppColors.info.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '${dateFormat.format(session.dateTime)} at ${timeFormat.format(session.dateTime)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: AppColors.gray600,
-                    ),
+                  child: Icon(
+                    Icons.event,
+                    color: AppColors.info,
+                    size: 24,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        session.title,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${dateFormat.format(session.dateTime)} at ${timeFormat.format(session.dateTime)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.gray600,
+                        ),
+                      ),
+                      if (group != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          group.name,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.chevron_right,
+                  color: AppColors.gray400,
+                  size: 20,
+                ),
+              ],
             ),
-            Icon(
-              Icons.chevron_right,
-              color: AppColors.gray400,
-              size: 20,
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 }

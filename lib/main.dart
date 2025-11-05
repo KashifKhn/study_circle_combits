@@ -15,6 +15,8 @@ import 'package:study_circle/screens/groups/group_details_screen.dart';
 import 'package:study_circle/screens/sessions/session_details_screen.dart';
 import 'package:study_circle/screens/sessions/sessions_list_screen.dart';
 import 'package:study_circle/screens/sessions/create_session_screen.dart';
+import 'package:study_circle/screens/profile/edit_profile_screen.dart';
+import 'package:study_circle/screens/profile/change_password_screen.dart';
 import 'package:study_circle/models/study_group_model.dart';
 import 'package:study_circle/models/study_session_model.dart';
 
@@ -83,6 +85,8 @@ class MyApp extends StatelessWidget {
                   session: args['session'] as StudySessionModel?,
                 );
               },
+              '/edit-profile': (context) => const EditProfileScreen(),
+              '/change-password': (context) => const ChangePasswordScreen(),
             },
           );
         },

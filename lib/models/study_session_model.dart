@@ -48,14 +48,20 @@ class StudySessionModel {
       groupId: data['groupId'] ?? '',
       title: data['title'] ?? '',
       topic: data['topic'] ?? '',
-      dateTime: (data['dateTime'] as Timestamp).toDate(),
+      dateTime: data['dateTime'] != null 
+          ? (data['dateTime'] as Timestamp).toDate()
+          : DateTime.now(),
       durationMinutes: data['durationMinutes'] ?? 60,
       agenda: data['agenda'] ?? '',
       location: data['location'] ?? '',
       createdBy: data['createdBy'] ?? '',
       rsvps: rsvps,
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      createdAt: data['createdAt'] != null 
+          ? (data['createdAt'] as Timestamp).toDate()
+          : DateTime.now(),
+      updatedAt: data['updatedAt'] != null 
+          ? (data['updatedAt'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 
