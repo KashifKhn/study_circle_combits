@@ -148,6 +148,16 @@ class FirestoreService {
             .toList());
   }
 
+  // Get all study groups (both public and private)
+  Stream<List<StudyGroupModel>> getAllGroups() {
+    return _groupsCollection
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => StudyGroupModel.fromFirestore(doc))
+            .toList());
+  }
+
   // Get user's groups
   Stream<List<StudyGroupModel>> getUserGroups(String userId) {
     return _groupsCollection
@@ -159,20 +169,20 @@ class FirestoreService {
             .toList());
   }
 
-  // Search study groups
+  // Search study groups (searches all groups, both public and private)
   Future<List<StudyGroupModel>> searchStudyGroups(String query) async {
     try {
       final queryLower = query.toLowerCase();
-      final snapshot = await _groupsCollection
-          .where('isPublic', isEqualTo: true)
-          .get();
+      final snapshot = await _groupsCollection.get();
 
-      // Filter by name or course code
+      // Filter by name, course code, or description
       return snapshot.docs
           .map((doc) => StudyGroupModel.fromFirestore(doc))
           .where((group) =>
               group.name.toLowerCase().contains(queryLower) ||
-              group.courseCode.toLowerCase().contains(queryLower))
+              group.courseCode.toLowerCase().contains(queryLower) ||
+              group.courseName.toLowerCase().contains(queryLower) ||
+              group.description.toLowerCase().contains(queryLower))
           .toList();
     } catch (e, stackTrace) {
       AppLogger.error('Failed to search study groups', e, stackTrace);
@@ -284,6 +294,17 @@ class FirestoreService {
       AppLogger.error('Failed to check join request', e, stackTrace);
       return false;
     }
+  }
+
+  // Stream version: Check if user has a pending join request for a group (real-time)
+  Stream<bool> hasPendingJoinRequestStream(String groupId, String userId) {
+    return _requestsCollection
+        .where('groupId', isEqualTo: groupId)
+        .where('userId', isEqualTo: userId)
+        .where('status', isEqualTo: 'pending')
+        .limit(1)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.isNotEmpty);
   }
 
   // Approve join request

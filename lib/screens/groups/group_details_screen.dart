@@ -26,6 +26,11 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) {
+        setState(() {}); // Rebuild to update FAB visibility
+      }
+    });
   }
 
   @override
@@ -86,6 +91,20 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
               ),
             ],
           ),
+          floatingActionButton: isMember && _tabController.index == 2
+              ? FloatingActionButton.extended(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/create-session',
+                      arguments: group,
+                    );
+                  },
+                  backgroundColor: AppColors.primary,
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Session'),
+                )
+              : null,
           bottomNavigationBar: _buildBottomBar(group, isMember, isCreator, currentUser?.uid),
         );
       },
@@ -559,6 +578,76 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
     if (currentUserId == null) return null;
     if (isCreator) return null; // Creators don't need to join/leave
 
+    // For non-members of private groups, check if they have a pending request
+    if (!isMember && !group.isPublic) {
+      return StreamBuilder<bool>(
+        stream: _firestoreService.hasPendingJoinRequestStream(group.id, currentUserId),
+        builder: (context, snapshot) {
+          final hasPendingRequest = snapshot.data ?? false;
+          
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: SafeArea(
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _isLoading || hasPendingRequest
+                      ? null
+                      : () => _joinGroup(group),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: hasPendingRequest ? AppColors.warning : AppColors.primary,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor: AppColors.warning.withValues(alpha: 0.6),
+                    disabledForegroundColor: Colors.white.withValues(alpha: 0.8),
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (hasPendingRequest)
+                              const Icon(Icons.schedule, size: 20),
+                            if (hasPendingRequest)
+                              const SizedBox(width: 8),
+                            Text(
+                              hasPendingRequest ? 'Request Pending' : 'Request to Join',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                ),
+              ),
+            ),
+          );
+        },
+      );
+    }
+
+    // For public groups and members, show regular join/leave button
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

@@ -86,7 +86,8 @@ class _GroupsListScreenState extends State<GroupsListScreen>
           TextField(
             controller: _searchController,
             decoration: InputDecoration(
-              hintText: 'Search groups by name or course code...',
+              hintText: 'Search by name, course, location...',
+              hintStyle: TextStyle(fontSize: 14, color: AppColors.gray500),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: _searchQuery.isNotEmpty
                   ? IconButton(
@@ -157,7 +158,7 @@ class _GroupsListScreenState extends State<GroupsListScreen>
 
   Widget _buildAllGroupsTab() {
     return StreamBuilder<List<StudyGroupModel>>(
-      stream: _firestoreService.getPublicGroups(),
+      stream: _firestoreService.getAllGroups(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
           return _buildErrorState('Error loading groups: ${snapshot.error}');
@@ -242,13 +243,35 @@ class _GroupsListScreenState extends State<GroupsListScreen>
   List<StudyGroupModel> _filterGroups(List<StudyGroupModel> groups) {
     var filtered = groups;
 
-    // Apply search filter
+    // Apply search filter - now smarter with multiple word support
     if (_searchQuery.isNotEmpty) {
-      final query = _searchQuery.toLowerCase();
+      final query = _searchQuery.toLowerCase().trim();
+      final searchTerms = query.split(' ').where((term) => term.isNotEmpty).toList();
+      
       filtered = filtered.where((group) {
-        return group.name.toLowerCase().contains(query) ||
-            group.courseCode.toLowerCase().contains(query) ||
-            group.description.toLowerCase().contains(query);
+        final name = group.name.toLowerCase();
+        final courseCode = group.courseCode.toLowerCase();
+        final courseName = group.courseName.toLowerCase();
+        final description = group.description.toLowerCase();
+        final location = group.location.toLowerCase();
+        
+        // If multiple words, all terms must match somewhere
+        if (searchTerms.length > 1) {
+          return searchTerms.every((term) =>
+            name.contains(term) ||
+            courseCode.contains(term) ||
+            courseName.contains(term) ||
+            description.contains(term) ||
+            location.contains(term)
+          );
+        }
+        
+        // Single word search - match anywhere
+        return name.contains(query) ||
+            courseCode.contains(query) ||
+            courseName.contains(query) ||
+            description.contains(query) ||
+            location.contains(query);
       }).toList();
     }
 
@@ -510,6 +533,12 @@ class _GroupCard extends StatelessWidget {
                       icon: Icons.public,
                       label: 'Public',
                       color: AppColors.success,
+                    ),
+                  if (!group.isPublic)
+                    _InfoChip(
+                      icon: Icons.lock,
+                      label: 'Private',
+                      color: AppColors.warning,
                     ),
                 ],
               ),
