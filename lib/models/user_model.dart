@@ -9,10 +9,11 @@ class UserModel {
   final int semester;
   final int year;
   final String profileImageUrl;
-  final List<String> groupsJoined;
-  final List<String> groupsCreated;
+  final List<String> joinedGroupIds;
+  final List<String> createdGroupIds;
+  final List<String> upcomingSessionIds;
   final int sessionsAttended;
-  final bool isDarkMode;
+  final String themePreference;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -24,14 +25,16 @@ class UserModel {
     required this.semester,
     required this.year,
     this.profileImageUrl = '',
-    List<String>? groupsJoined,
-    List<String>? groupsCreated,
+    List<String>? joinedGroupIds,
+    List<String>? createdGroupIds,
+    List<String>? upcomingSessionIds,
     this.sessionsAttended = 0,
-    this.isDarkMode = false,
+    this.themePreference = 'light',
     DateTime? createdAt,
     DateTime? updatedAt,
-  })  : groupsJoined = groupsJoined ?? [],
-        groupsCreated = groupsCreated ?? [],
+  })  : joinedGroupIds = joinedGroupIds ?? [],
+        createdGroupIds = createdGroupIds ?? [],
+        upcomingSessionIds = upcomingSessionIds ?? [],
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -47,10 +50,11 @@ class UserModel {
       semester: data['semester'] ?? 1,
       year: data['year'] ?? 2024,
       profileImageUrl: data['profileImageUrl'] ?? '',
-      groupsJoined: List<String>.from(data['groupsJoined'] ?? []),
-      groupsCreated: List<String>.from(data['groupsCreated'] ?? []),
+      joinedGroupIds: List<String>.from(data['joinedGroupIds'] ?? []),
+      createdGroupIds: List<String>.from(data['createdGroupIds'] ?? []),
+      upcomingSessionIds: List<String>.from(data['upcomingSessionIds'] ?? []),
       sessionsAttended: data['sessionsAttended'] ?? 0,
-      isDarkMode: data['isDarkMode'] ?? false,
+      themePreference: data['themePreference'] ?? 'light',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -66,10 +70,11 @@ class UserModel {
       semester: data['semester'] ?? 1,
       year: data['year'] ?? 2024,
       profileImageUrl: data['profileImageUrl'] ?? '',
-      groupsJoined: List<String>.from(data['groupsJoined'] ?? []),
-      groupsCreated: List<String>.from(data['groupsCreated'] ?? []),
+      joinedGroupIds: List<String>.from(data['joinedGroupIds'] ?? []),
+      createdGroupIds: List<String>.from(data['createdGroupIds'] ?? []),
+      upcomingSessionIds: List<String>.from(data['upcomingSessionIds'] ?? []),
       sessionsAttended: data['sessionsAttended'] ?? 0,
-      isDarkMode: data['isDarkMode'] ?? false,
+      themePreference: data['themePreference'] ?? 'light',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
     );
@@ -85,10 +90,11 @@ class UserModel {
       'semester': semester,
       'year': year,
       'profileImageUrl': profileImageUrl,
-      'groupsJoined': groupsJoined,
-      'groupsCreated': groupsCreated,
+      'joinedGroupIds': joinedGroupIds,
+      'createdGroupIds': createdGroupIds,
+      'upcomingSessionIds': upcomingSessionIds,
       'sessionsAttended': sessionsAttended,
-      'isDarkMode': isDarkMode,
+      'themePreference': themePreference,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -104,10 +110,11 @@ class UserModel {
       'semester': semester,
       'year': year,
       'profileImageUrl': profileImageUrl,
-      'groupsJoined': groupsJoined,
-      'groupsCreated': groupsCreated,
+      'joinedGroupIds': joinedGroupIds,
+      'createdGroupIds': createdGroupIds,
+      'upcomingSessionIds': upcomingSessionIds,
       'sessionsAttended': sessionsAttended,
-      'isDarkMode': isDarkMode,
+      'themePreference': themePreference,
       'createdAt': createdAt,
       'updatedAt': updatedAt,
     };
@@ -122,10 +129,11 @@ class UserModel {
     int? semester,
     int? year,
     String? profileImageUrl,
-    List<String>? groupsJoined,
-    List<String>? groupsCreated,
+    List<String>? joinedGroupIds,
+    List<String>? createdGroupIds,
+    List<String>? upcomingSessionIds,
     int? sessionsAttended,
-    bool? isDarkMode,
+    String? themePreference,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -137,10 +145,11 @@ class UserModel {
       semester: semester ?? this.semester,
       year: year ?? this.year,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
-      groupsJoined: groupsJoined ?? this.groupsJoined,
-      groupsCreated: groupsCreated ?? this.groupsCreated,
+      joinedGroupIds: joinedGroupIds ?? this.joinedGroupIds,
+      createdGroupIds: createdGroupIds ?? this.createdGroupIds,
+      upcomingSessionIds: upcomingSessionIds ?? this.upcomingSessionIds,
       sessionsAttended: sessionsAttended ?? this.sessionsAttended,
-      isDarkMode: isDarkMode ?? this.isDarkMode,
+      themePreference: themePreference ?? this.themePreference,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );

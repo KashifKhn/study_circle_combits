@@ -19,6 +19,9 @@ class Validators {
     return null;
   }
 
+  /// Shorthand for email validation
+  static String? Function(String?) get email => validateEmail;
+
   /// Validate password
   static String? validatePassword(String? value) {
     if (value == null || value.isEmpty) {
@@ -32,6 +35,9 @@ class Validators {
     return null;
   }
 
+  /// Shorthand for password validation
+  static String? Function(String?) get password => validatePassword;
+
   /// Validate name
   static String? validateName(String? value) {
     if (value == null || value.isEmpty) {
@@ -44,6 +50,9 @@ class Validators {
 
     return null;
   }
+
+  /// Shorthand for name validation
+  static String? Function(String?) get name => validateName;
 
   /// Validate required field
   static String? validateRequired(String? value, String fieldName) {

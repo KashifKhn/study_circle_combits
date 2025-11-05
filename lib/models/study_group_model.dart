@@ -174,6 +174,9 @@ class StudyGroupModel {
   /// Check if group is full
   bool get isFull => memberCount >= maxMembers;
 
+  /// Alias for groupName (for compatibility)
+  String get name => groupName;
+
   /// Check if user is a member
   bool isMember(String userId) => memberIds.contains(userId);
 

@@ -5,6 +5,25 @@ class AppConstants {
   static const int minGroupMembers = 3;
   static const int maxGroupMembers = 10;
 
+  // Academic departments
+  static const List<String> departments = [
+    'Computer Science',
+    'Information Technology',
+    'Electronics & Communication',
+    'Electrical Engineering',
+    'Mechanical Engineering',
+    'Civil Engineering',
+    'Chemical Engineering',
+    'Biotechnology',
+    'Mathematics',
+    'Physics',
+    'Chemistry',
+    'Business Administration',
+    'Commerce',
+    'Economics',
+    'Other',
+  ];
+
   static const int maxFileSizeInMB = 10;
   static const int maxFileSizeInBytes = maxFileSizeInMB * 1024 * 1024;
 

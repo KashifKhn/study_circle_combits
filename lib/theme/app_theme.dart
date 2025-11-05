@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:study_circle/theme/app_color.dart';
+import 'package:study_circle/theme/app_colors.dart';
 
 class AppTheme {
   static ThemeData get lightTheme {

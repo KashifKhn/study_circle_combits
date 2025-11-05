@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
 
 import 'package:study_circle/firebase_options.dart';
 import 'package:study_circle/theme/app_theme.dart';
 import 'package:study_circle/utils/logger.dart';
 import 'package:study_circle/utils/constants.dart';
+import 'package:study_circle/providers/theme_provider.dart';
+import 'package:study_circle/providers/auth_provider.dart';
+import 'package:study_circle/screens/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,13 +33,52 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: AppConstants.appName,
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.light,
-      home: const SplashScreen(),
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => ThemeProvider()..init()),
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+      ],
+      child: Consumer<ThemeProvider>(
+        builder: (context, themeProvider, _) {
+          return MaterialApp(
+            title: AppConstants.appName,
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.lightTheme,
+            darkTheme: AppTheme.darkTheme,
+            themeMode: themeProvider.themeMode,
+            home: const AuthWrapper(),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class AuthWrapper extends StatelessWidget {
+  const AuthWrapper({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, _) {
+        // Show splash screen while initializing
+        if (authProvider.status == AuthStatus.uninitialized) {
+          return const SplashScreen();
+        }
+
+        // Navigate based on auth status
+        if (authProvider.isAuthenticated && authProvider.userModel != null) {
+          // User is authenticated - navigate to home
+          return const Scaffold(
+            body: Center(
+              child: Text('Home Screen - Coming Soon!'),
+            ),
+          );
+        } else {
+          // User is not authenticated - show login
+          return const LoginScreen();
+        }
+      },
     );
   }
 }
