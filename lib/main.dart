@@ -12,7 +12,11 @@ import 'package:study_circle/screens/auth/login_screen.dart';
 import 'package:study_circle/screens/home/home_screen.dart';
 import 'package:study_circle/screens/groups/create_group_screen.dart';
 import 'package:study_circle/screens/groups/group_details_screen.dart';
+import 'package:study_circle/screens/sessions/session_details_screen.dart';
+import 'package:study_circle/screens/sessions/sessions_list_screen.dart';
+import 'package:study_circle/screens/sessions/create_session_screen.dart';
 import 'package:study_circle/models/study_group_model.dart';
+import 'package:study_circle/models/study_session_model.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,6 +64,24 @@ class MyApp extends StatelessWidget {
               '/edit-group': (context) {
                 final group = ModalRoute.of(context)!.settings.arguments as StudyGroupModel;
                 return CreateGroupScreen(group: group);
+              },
+              '/sessions-list': (context) {
+                final group = ModalRoute.of(context)!.settings.arguments as StudyGroupModel;
+                return SessionsListScreen(group: group);
+              },
+              '/session-details': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+                return SessionDetailsScreen(
+                  session: args['session'] as StudySessionModel,
+                  group: args['group'] as StudyGroupModel,
+                );
+              },
+              '/create-session': (context) {
+                final args = ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
+                return CreateSessionScreen(
+                  group: args['group'] as StudyGroupModel,
+                  session: args['session'] as StudySessionModel?,
+                );
               },
             },
           );

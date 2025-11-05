@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:study_circle/models/rsvp_model.dart';
 
 class StudySessionModel {
   final String id;
@@ -10,7 +11,7 @@ class StudySessionModel {
   final String agenda;
   final String location;
   final String createdBy;
-  final List<String> rsvpList;
+  final Map<String, RsvpModel> rsvps; // Changed from List to Map for easier lookup
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -24,14 +25,24 @@ class StudySessionModel {
     required this.agenda,
     required this.location,
     required this.createdBy,
-    required this.rsvpList,
+    Map<String, RsvpModel>? rsvps,
     required this.createdAt,
     required this.updatedAt,
-  });
+  }) : rsvps = rsvps ?? {};
 
   // Factory constructor to create from Firestore document
   factory StudySessionModel.fromFirestore(DocumentSnapshot doc) {
     final data = doc.data() as Map<String, dynamic>;
+    
+    // Convert rsvps map from Firestore
+    Map<String, RsvpModel> rsvps = {};
+    if (data['rsvps'] != null) {
+      final rsvpsData = data['rsvps'] as Map<String, dynamic>;
+      rsvps = rsvpsData.map(
+        (key, value) => MapEntry(key, RsvpModel.fromMap(value as Map<String, dynamic>)),
+      );
+    }
+    
     return StudySessionModel(
       id: doc.id,
       groupId: data['groupId'] ?? '',
@@ -42,7 +53,7 @@ class StudySessionModel {
       agenda: data['agenda'] ?? '',
       location: data['location'] ?? '',
       createdBy: data['createdBy'] ?? '',
-      rsvpList: List<String>.from(data['rsvpList'] ?? []),
+      rsvps: rsvps,
       createdAt: (data['createdAt'] as Timestamp).toDate(),
       updatedAt: (data['updatedAt'] as Timestamp).toDate(),
     );
@@ -50,6 +61,11 @@ class StudySessionModel {
 
   // Convert to Firestore format
   Map<String, dynamic> toFirestore() {
+    // Convert rsvps map to Firestore format
+    final rsvpsData = rsvps.map(
+      (key, value) => MapEntry(key, value.toMap()),
+    );
+    
     return {
       'groupId': groupId,
       'title': title,
@@ -59,7 +75,7 @@ class StudySessionModel {
       'agenda': agenda,
       'location': location,
       'createdBy': createdBy,
-      'rsvpList': rsvpList,
+      'rsvps': rsvpsData,
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
     };
@@ -76,7 +92,7 @@ class StudySessionModel {
     String? agenda,
     String? location,
     String? createdBy,
-    List<String>? rsvpList,
+    Map<String, RsvpModel>? rsvps,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -90,9 +106,17 @@ class StudySessionModel {
       agenda: agenda ?? this.agenda,
       location: location ?? this.location,
       createdBy: createdBy ?? this.createdBy,
-      rsvpList: rsvpList ?? this.rsvpList,
+      rsvps: rsvps ?? this.rsvps,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+  
+  // Helper methods for RSVP management
+  int get attendingCount => rsvps.values.where((r) => r.status == RsvpStatus.attending).length;
+  int get maybeCount => rsvps.values.where((r) => r.status == RsvpStatus.maybe).length;
+  int get notAttendingCount => rsvps.values.where((r) => r.status == RsvpStatus.notAttending).length;
+  
+  bool hasUserRsvp(String userId) => rsvps.containsKey(userId);
+  RsvpStatus? getUserRsvpStatus(String userId) => rsvps[userId]?.status;
 }

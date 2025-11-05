@@ -454,34 +454,99 @@ class _GroupDetailsScreenState extends State<GroupDetailsScreen>
   }
 
   Widget _buildSessionsTab(StudyGroupModel group) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.event_busy, size: 64, color: AppColors.gray400),
-            const SizedBox(height: 16),
-            Text(
-              'No Sessions Yet',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AppColors.gray700,
-                fontFamily: 'Poppins',
-              ),
+    return StreamBuilder<List<dynamic>>(
+      stream: _firestoreService.getGroupSessions(group.id),
+      builder: (context, snapshot) {
+        final sessions = snapshot.data ?? [];
+        final now = DateTime.now();
+        final upcomingSessions = sessions.where((s) => s.dateTime.isAfter(now)).length;
+        final pastSessions = sessions.where((s) => s.dateTime.isBefore(now)).length;
+
+        return Center(
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.calendar_month, size: 80, color: AppColors.primary),
+                const SizedBox(height: 20),
+                Text(
+                  'Study Sessions',
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.gray800,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                if (sessions.isNotEmpty) ...[
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _buildSessionCount(upcomingSessions, 'Upcoming', AppColors.primary),
+                      const SizedBox(width: 20),
+                      _buildSessionCount(pastSessions, 'Past', AppColors.gray500),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                ] else ...[
+                  Text(
+                    'No sessions scheduled yet',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.gray600,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+                ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pushNamed(
+                      context,
+                      '/sessions-list',
+                      arguments: group,
+                    );
+                  },
+                  icon: const Icon(Icons.event_note),
+                  label: const Text('View All Sessions'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              'Study sessions will appear here',
-              style: TextStyle(
-                fontSize: 14,
-                color: AppColors.gray600,
-              ),
-            ),
-          ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildSessionCount(int count, String label, Color color) {
+    return Column(
+      children: [
+        Text(
+          count.toString(),
+          style: TextStyle(
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: color,
+            fontFamily: 'Poppins',
+          ),
         ),
-      ),
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.gray600,
+          ),
+        ),
+      ],
     );
   }
 

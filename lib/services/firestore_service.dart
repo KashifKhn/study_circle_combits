@@ -4,6 +4,7 @@ import 'package:study_circle/models/study_group_model.dart';
 import 'package:study_circle/models/study_session_model.dart';
 import 'package:study_circle/models/join_request_model.dart';
 import 'package:study_circle/models/resource_model.dart';
+import 'package:study_circle/models/rsvp_model.dart';
 import 'package:study_circle/utils/logger.dart';
 
 class FirestoreService {
@@ -350,7 +351,8 @@ class FirestoreService {
     try {
       AppLogger.info('Creating study session: ${session.title}');
       final docRef = await _sessionsCollection.add(session.toFirestore());
-      AppLogger.info('Study session created: ${docRef.id}');
+      AppLogger.info('Study session created with ID: ${docRef.id}');
+      AppLogger.debug('Session details - groupId: ${session.groupId}, dateTime: ${session.dateTime}, location: ${session.location}');
       return docRef.id;
     } catch (e, stackTrace) {
       AppLogger.error('Failed to create study session', e, stackTrace);
@@ -370,32 +372,58 @@ class FirestoreService {
     }
   }
 
+  // Get single session by ID
+  Stream<StudySessionModel> getSession(String sessionId) {
+    return _sessionsCollection
+        .doc(sessionId)
+        .snapshots()
+        .map((doc) {
+          if (!doc.exists) {
+            throw Exception('Session not found');
+          }
+          return StudySessionModel.fromFirestore(doc);
+        });
+  }
+
   // Get group sessions
   Stream<List<StudySessionModel>> getGroupSessions(String groupId) {
+    AppLogger.debug('getGroupSessions: Querying sessions for group: $groupId');
+    
     return _sessionsCollection
         .where('groupId', isEqualTo: groupId)
         .orderBy('dateTime', descending: false)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => StudySessionModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final sessions = snapshot.docs
+              .map((doc) => StudySessionModel.fromFirestore(doc))
+              .toList();
+          AppLogger.debug('getGroupSessions: Found ${sessions.length} sessions for group $groupId');
+          return sessions;
+        });
   }
 
   // Get upcoming sessions for user
   Stream<List<StudySessionModel>> getUpcomingSessions(List<String> groupIds) {
     if (groupIds.isEmpty) {
+      AppLogger.debug('getUpcomingSessions: No group IDs provided, returning empty stream');
       return Stream.value([]);
     }
 
+    AppLogger.debug('getUpcomingSessions: Querying sessions for ${groupIds.length} groups: $groupIds');
+    
     return _sessionsCollection
         .where('groupId', whereIn: groupIds)
         .where('dateTime', isGreaterThan: Timestamp.now())
         .orderBy('dateTime', descending: false)
         .limit(10)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => StudySessionModel.fromFirestore(doc))
-            .toList());
+        .map((snapshot) {
+          final sessions = snapshot.docs
+              .map((doc) => StudySessionModel.fromFirestore(doc))
+              .toList();
+          AppLogger.debug('getUpcomingSessions: Found ${sessions.length} upcoming sessions');
+          return sessions;
+        });
   }
 
   // Delete study session
@@ -407,6 +435,58 @@ class FirestoreService {
     } catch (e, stackTrace) {
       AppLogger.error('Failed to delete study session', e, stackTrace);
       throw 'Failed to delete session. Please try again.';
+    }
+  }
+
+  // Alias for deleteStudySession
+  Future<void> deleteSession(String sessionId) => deleteStudySession(sessionId);
+
+  // Update RSVP for a session
+  Future<void> updateSessionRsvp({
+    required String sessionId,
+    required String userId,
+    required String userName,
+    required RsvpStatus status,
+  }) async {
+    try {
+      AppLogger.info('Updating RSVP for session: $sessionId, user: $userId, status: $status');
+      
+      final rsvp = RsvpModel(
+        userId: userId,
+        userName: userName,
+        status: status,
+        respondedAt: DateTime.now(),
+      );
+      
+      await _sessionsCollection.doc(sessionId).update({
+        'rsvps.$userId': rsvp.toMap(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      AppLogger.info('RSVP updated successfully');
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to update RSVP', e, stackTrace);
+      throw 'Failed to update RSVP. Please try again.';
+    }
+  }
+
+  // Remove RSVP for a session
+  Future<void> removeSessionRsvp({
+    required String sessionId,
+    required String userId,
+  }) async {
+    try {
+      AppLogger.info('Removing RSVP for session: $sessionId, user: $userId');
+      
+      await _sessionsCollection.doc(sessionId).update({
+        'rsvps.$userId': FieldValue.delete(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      AppLogger.info('RSVP removed successfully');
+    } catch (e, stackTrace) {
+      AppLogger.error('Failed to remove RSVP', e, stackTrace);
+      throw 'Failed to remove RSVP. Please try again.';
     }
   }
 

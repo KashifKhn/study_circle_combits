@@ -1,107 +1,234 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:study_circle/models/study_session_model.dart';
+import 'package:study_circle/models/study_group_model.dart';
+import 'package:study_circle/models/rsvp_model.dart';
+import 'package:study_circle/providers/auth_provider.dart' as app_auth;
+import 'package:study_circle/services/firestore_service.dart';
+import 'package:study_circle/screens/sessions/create_session_screen.dart';
 import 'package:study_circle/theme/app_colors.dart';
+import 'package:intl/intl.dart';
 
-class SessionsListScreen extends StatelessWidget {
-  const SessionsListScreen({super.key});
+class SessionsListScreen extends StatefulWidget {
+  final StudyGroupModel group;
+
+  const SessionsListScreen({super.key, required this.group});
+
+  @override
+  State<SessionsListScreen> createState() => _SessionsListScreenState();
+}
+
+class _SessionsListScreenState extends State<SessionsListScreen> {
+  final FirestoreService _firestoreService = FirestoreService();
 
   @override
   Widget build(BuildContext context) {
+    final authProvider = context.watch<app_auth.AuthProvider>();
+    final currentUser = authProvider.userModel;
+    final isGroupMember = currentUser != null && widget.group.memberIds.contains(currentUser.uid);
+
     return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          SliverAppBar(
-            pinned: true,
-            title: const Text(
-              'Study Sessions',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Poppins',
-              ),
-            ),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.filter_list),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Filter coming soon!')),
-                  );
-                },
-              ),
-            ],
+      appBar: AppBar(
+        title: const Text(
+          'Study Sessions',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontFamily: 'Poppins',
           ),
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildSectionHeader('Upcoming Sessions'),
-                  const SizedBox(height: 16),
-                  _buildEmptyState(
-                    icon: Icons.event_busy,
-                    title: 'No Upcoming Sessions',
-                    message: 'Join a study group to see upcoming sessions here',
-                  ),
-                  const SizedBox(height: 32),
-                  _buildSectionHeader('Past Sessions'),
-                  const SizedBox(height: 16),
-                  _buildEmptyState(
-                    icon: Icons.history,
-                    title: 'No Past Sessions',
-                    message: 'Your attended sessions will appear here',
-                  ),
-                ],
-              ),
+        ),
+      ),
+      body: Column(
+        children: [
+          _buildGroupInfo(),
+          Expanded(
+            child: StreamBuilder<List<StudySessionModel>>(
+              stream: _firestoreService.getGroupSessions(widget.group.id),
+              builder: (context, snapshot) {
+                if (snapshot.hasError) {
+                  return _buildErrorState('Error loading sessions: ${snapshot.error}');
+                }
+
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final sessions = snapshot.data ?? [];
+
+                if (sessions.isEmpty) {
+                  return _buildEmptyState();
+                }
+
+                // Separate upcoming and past sessions
+                final now = DateTime.now();
+                final upcomingSessions = sessions.where((s) => s.dateTime.isAfter(now)).toList();
+                final pastSessions = sessions.where((s) => s.dateTime.isBefore(now)).toList();
+
+                return ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
+                    if (upcomingSessions.isNotEmpty) ...[
+                      _buildSectionHeader('Upcoming Sessions', upcomingSessions.length),
+                      const SizedBox(height: 12),
+                      ...upcomingSessions.map((session) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _SessionCard(
+                              session: session,
+                              group: widget.group,
+                              currentUserId: currentUser?.uid,
+                            ),
+                          )),
+                    ],
+                    if (pastSessions.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      _buildSectionHeader('Past Sessions', pastSessions.length),
+                      const SizedBox(height: 12),
+                      ...pastSessions.map((session) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: _SessionCard(
+                              session: session,
+                              group: widget.group,
+                              currentUserId: currentUser?.uid,
+                              isPast: true,
+                            ),
+                          )),
+                    ],
+                  ],
+                );
+              },
             ),
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Create session coming soon!')),
-          );
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('Schedule Session'),
-        backgroundColor: AppColors.primary,
-      ),
+      floatingActionButton: isGroupMember
+          ? FloatingActionButton.extended(
+              onPressed: () => _navigateToCreateSession(),
+              backgroundColor: AppColors.primary,
+              icon: const Icon(Icons.add),
+              label: const Text('New Session'),
+            )
+          : null,
     );
   }
 
-  Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 18,
-        fontWeight: FontWeight.bold,
-        color: AppColors.gray800,
-        fontFamily: 'Poppins',
-      ),
-    );
-  }
-
-  Widget _buildEmptyState({
-    required IconData icon,
-    required String title,
-    required String message,
-  }) {
+  Widget _buildGroupInfo() {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.gray50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.gray200),
+        color: AppColors.primary.withValues(alpha: 0.1),
+        border: Border(
+          bottom: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
+        ),
       ),
-      child: Center(
+      child: Row(
+        children: [
+          Icon(Icons.group, color: AppColors.primary, size: 28),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  widget.group.name,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Poppins',
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  widget.group.courseCode,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.gray600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionHeader(String title, int count) {
+    return Row(
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: AppColors.gray800,
+            fontFamily: 'Poppins',
+          ),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 64, color: AppColors.gray400),
+            Icon(Icons.event_busy, size: 80, color: AppColors.gray400),
             const SizedBox(height: 16),
             Text(
-              title,
+              'No Sessions Yet',
               style: TextStyle(
-                fontSize: 16,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: AppColors.gray700,
+                fontFamily: 'Poppins',
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Schedule your first study session to get started!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                color: AppColors.gray600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String message) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.error_outline, size: 80, color: AppColors.error),
+            const SizedBox(height: 16),
+            Text(
+              'Oops!',
+              style: TextStyle(
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: AppColors.gray700,
                 fontFamily: 'Poppins',
@@ -118,6 +245,226 @@ class SessionsListScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _navigateToCreateSession() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateSessionScreen(group: widget.group),
+      ),
+    );
+
+    // Refresh is automatic via StreamBuilder
+    if (result == true && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Session created successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
+  }
+}
+
+// Session Card Widget
+class _SessionCard extends StatelessWidget {
+  final StudySessionModel session;
+  final StudyGroupModel group;
+  final String? currentUserId;
+  final bool isPast;
+
+  const _SessionCard({
+    required this.session,
+    required this.group,
+    this.currentUserId,
+    this.isPast = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final userRsvpStatus = currentUserId != null ? session.getUserRsvpStatus(currentUserId!) : null;
+    final dateFormat = DateFormat('MMM dd, yyyy');
+    final timeFormat = DateFormat('h:mm a');
+
+    return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: isPast ? AppColors.gray300 : AppColors.gray200,
+        ),
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: () {
+          // Navigate to session details
+          Navigator.pushNamed(
+            context,
+            '/session-details',
+            arguments: {'session': session, 'group': group},
+          );
+        },
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          session.title,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Poppins',
+                            color: isPast ? AppColors.gray600 : AppColors.gray800,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          session.topic,
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: isPast ? AppColors.gray500 : AppColors.primary,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (userRsvpStatus != null) _buildRsvpBadge(userRsvpStatus),
+                ],
+              ),
+              const SizedBox(height: 12),
+              _buildInfoRow(
+                Icons.calendar_today,
+                dateFormat.format(session.dateTime),
+              ),
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                Icons.access_time,
+                '${timeFormat.format(session.dateTime)} • ${session.durationMinutes} min',
+              ),
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                Icons.location_on,
+                session.location,
+              ),
+              const SizedBox(height: 12),
+              _buildRsvpSummary(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRsvpBadge(RsvpStatus status) {
+    Color color;
+    String label;
+    IconData icon;
+
+    switch (status) {
+      case RsvpStatus.attending:
+        color = AppColors.success;
+        label = 'Attending';
+        icon = Icons.check_circle;
+        break;
+      case RsvpStatus.maybe:
+        color = AppColors.warning;
+        label = 'Maybe';
+        icon = Icons.help;
+        break;
+      case RsvpStatus.notAttending:
+        color = AppColors.error;
+        label = 'Not Attending';
+        icon = Icons.cancel;
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, size: 16, color: AppColors.gray500),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            style: TextStyle(
+              fontSize: 13,
+              color: isPast ? AppColors.gray500 : AppColors.gray700,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRsvpSummary() {
+    return Row(
+      children: [
+        _buildRsvpCount(Icons.check_circle, session.attendingCount, AppColors.success),
+        const SizedBox(width: 12),
+        _buildRsvpCount(Icons.help, session.maybeCount, AppColors.warning),
+        const SizedBox(width: 12),
+        _buildRsvpCount(Icons.cancel, session.notAttendingCount, AppColors.error),
+      ],
+    );
+  }
+
+  Widget _buildRsvpCount(IconData icon, int count, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: color),
+          const SizedBox(width: 4),
+          Text(
+            count.toString(),
+            style: TextStyle(
+              fontSize: 12,
+              color: color,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:study_circle/models/user_model.dart';
+import 'package:study_circle/models/study_session_model.dart';
 import 'package:study_circle/providers/auth_provider.dart' as app_auth;
 import 'package:study_circle/providers/theme_provider.dart';
+import 'package:study_circle/services/firestore_service.dart';
 import 'package:study_circle/theme/app_colors.dart';
 import 'package:study_circle/screens/groups/groups_list_screen.dart';
-import 'package:study_circle/screens/sessions/sessions_list_screen.dart';
+import 'package:study_circle/screens/sessions/my_sessions_screen.dart';
 import 'package:study_circle/screens/profile/profile_screen.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,7 +43,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           _DashboardTab(user: user, onChangeTab: _changeTab),
           GroupsListScreen(),
-          SessionsListScreen(),
+          MySessionsScreen(),
           ProfileScreen(),
         ],
       ),
@@ -227,6 +230,8 @@ class _DashboardTab extends StatelessWidget {
   }
 
   Widget _buildUpcomingSessions() {
+    final firestoreService = FirestoreService();
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -243,40 +248,54 @@ class _DashboardTab extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // Navigate to sessions tab
+                onChangeTab(2); // Navigate to sessions tab
               },
               child: const Text('View All'),
             ),
           ],
         ),
         const SizedBox(height: 12),
-        user.upcomingSessionIds.isEmpty
-            ? _buildEmptyState(
+        StreamBuilder<List<StudySessionModel>>(
+          stream: firestoreService.getUpcomingSessions(user.joinedGroupIds),
+          builder: (context, snapshot) {
+            if (snapshot.hasError) {
+              return _buildEmptyState(
+                icon: Icons.error_outline,
+                message: 'Error loading sessions',
+              );
+            }
+
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: CircularProgressIndicator(),
+                ),
+              );
+            }
+
+            final sessions = snapshot.data ?? [];
+            
+            if (sessions.isEmpty) {
+              return _buildEmptyState(
                 icon: Icons.event_busy,
                 message: 'No upcoming sessions',
-              )
-            : Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.info.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: AppColors.info.withValues(alpha: 0.3),
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(Icons.event, color: AppColors.info, size: 32),
-                    const SizedBox(width: 12),
-                    const Expanded(
-                      child: Text(
-                        'You have upcoming sessions',
-                        style: TextStyle(fontWeight: FontWeight.w500),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              );
+            }
+
+            // Show first 3 sessions
+            final displaySessions = sessions.take(3).toList();
+            
+            return Column(
+              children: displaySessions.map((session) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _SessionPreviewCard(session: session),
+                );
+              }).toList(),
+            );
+          },
+        ),
       ],
     );
   }
@@ -298,7 +317,7 @@ class _DashboardTab extends StatelessWidget {
             ),
             TextButton(
               onPressed: () {
-                // Navigate to groups tab
+                onChangeTab(1); // Navigate to groups tab
               },
               child: const Text('View All'),
             ),
@@ -436,6 +455,86 @@ class _ActionButton extends StatelessWidget {
               label,
               textAlign: TextAlign.center,
               style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// Session Preview Card Widget
+class _SessionPreviewCard extends StatelessWidget {
+  final StudySessionModel session;
+
+  const _SessionPreviewCard({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final dateFormat = DateFormat('MMM dd');
+    final timeFormat = DateFormat('h:mm a');
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.info.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.info.withValues(alpha: 0.2),
+        ),
+      ),
+      child: InkWell(
+        onTap: () {
+          // Navigate to session details
+          Navigator.pushNamed(
+            context,
+            '/session-details',
+            arguments: {'sessionId': session.id},
+          );
+        },
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.info.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.event,
+                color: AppColors.info,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    session.title,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    '${dateFormat.format(session.dateTime)} at ${timeFormat.format(session.dateTime)}',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: AppColors.gray600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.chevron_right,
+              color: AppColors.gray400,
+              size: 20,
             ),
           ],
         ),
